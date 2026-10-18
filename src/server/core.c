@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -27,8 +28,8 @@ int start(char* address, int port) {
     // Socket address
     struct sockaddr_in s_addr = {0};
     s_addr.sin_family = AF_INET;
-    s_addr.sin_addr.s_addr = inet_addr(address);
-    s_addr.sin_port = htonl(port);
+    s_addr.sin_addr.s_addr = htonl(inet_addr(address));
+    s_addr.sin_port = htons(port);
 
     // Socket creation
     int ss = socket(AF_INET, SOCK_STREAM, 0);
@@ -49,13 +50,15 @@ int start(char* address, int port) {
         return -1;
     }
 
+    // Main cycle
     char* buffer_in = malloc(BUF_SIZE);
     char* buffer_out = malloc(BUF_SIZE);
     while (1) {
         // Client accept
-        struct sockaddr_in* c_addr;
-        int cs = accept(ss, (struct sockaddr*)c_addr, sizeof(c_addr));
-        if (ss == -1) {
+        struct sockaddr_in c_addr = {0};
+        socklen_t len = sizeof(c_addr);
+        int cs = accept(ss, (struct sockaddr*)&c_addr, &len);
+        if (cs == -1) {
             perror("Client socket creation error: ");
             return -1;
         }
@@ -81,4 +84,6 @@ int start(char* address, int port) {
     }
     free(buffer_in);
     free(buffer_out);
+
+    close(ss);
 }

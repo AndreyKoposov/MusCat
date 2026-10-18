@@ -45,3 +45,5 @@ dkms.conf
 # Temporary or backup files created by editors or tools
 *~
 \#*\#
+
+build/
