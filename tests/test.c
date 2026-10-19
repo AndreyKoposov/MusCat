@@ -3,6 +3,7 @@
 #include <CUnit/Basic.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <unistd.h>
 
 #include <sys/types.h>
@@ -16,16 +17,24 @@
 #include "server.h"
 
 
+#define MAX_ATTEMPTS 3
+
+void stop_server(int pid) {
+    kill(pid, SIGINT);
+    waitpid(pid, NULL, 0);
+}
+
 void test_server(void) {
     int port = 8888;
-
     int pid = fork();
 
+    // Parent process
     if (pid < 0) { 
         CU_FAIL("Fork failed!\n"); 
         return; 
     }
     else
+    // Chiled process
     if (pid == 0) {
         int devnull = open("/dev/null", O_WRONLY);
         if (devnull >= 0) {
@@ -33,11 +42,10 @@ void test_server(void) {
             dup2(devnull, STDERR_FILENO);
             close(devnull);
         }
-        start(port);
-        _exit(0);
+        int status = start(port);
+        _exit(status);
     }
-    sleep(1);
-
+    // Parent process
     struct sockaddr_in addr = {0};
     addr.sin_family = AF_INET;
     addr.sin_addr.s_addr = inet_addr("127.0.0.1");
@@ -46,34 +54,51 @@ void test_server(void) {
     int s = socket(AF_INET, SOCK_STREAM, 0);
     if (s < 0) {
         CU_FAIL("Socket error!\n");
+        stop_server(pid);
         return;
     }
-    if (connect(s, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
+    // Connection
+    int connected = 0;
+    for (int i = 0; i < MAX_ATTEMPTS; i++) {
+        if (connect(s, (struct sockaddr*)&addr, sizeof(addr)) == 0) {
+            connected = 1;
+            break;
+        }
+        sleep(1);
+    }
+    // Connection error
+    if (connected == 0) {
         CU_FAIL("Connection error!\n");
-        try_close(s);
+        close(s);
+        stop_server(pid);
         return;
     }
 
-    char* msg = "Hi";
-    size_t size = strlen(msg);
+    int max_size = 10000;
+    char* long_msg = malloc(max_size);
+    memset(long_msg, 'a', max_size);
+    char* msgs[3] = {"Hi", "Long Long Long String", long_msg};
+    for (int i = 0; i < 3; i++) {
+        size_t size = strlen(msgs[i]);
 
-    send_all(s, msg, size);
+        CU_ASSERT_EQUAL(send_all(s, msgs[i], size), 0);
 
-    char buffer[32];
-    size_t total = 0;
-    while (total < size) {
-        ssize_t bytes = recv(s, buffer+total, size-total, 0);
-        if (bytes <= 0) break;
-        total += bytes;
+        char* buffer = malloc(size);
+        size_t total = 0;
+        while (total < size) {
+            ssize_t bytes = recv(s, buffer+total, size-total, 0);
+            if (bytes <= 0) break;
+            total += bytes;
+        }
+
+        CU_ASSERT_EQUAL(total, size);
+        CU_ASSERT_NSTRING_EQUAL(msgs[i], buffer, size);
+        free(buffer);
     }
+    free(long_msg);
 
-    CU_ASSERT_EQUAL(total, size);
-    CU_ASSERT_NSTRING_EQUAL(msg, buffer, size);
-
-    try_close(s);
-
-    kill(pid, SIGINT);
-    waitpid(pid, NULL, 0);
+    close(s);
+    stop_server(pid);
 }
 
 int main() {

@@ -48,21 +48,21 @@ void sigint_handler(int sig) {
     break_flag = 0;
 }
 
-void start(int port) {
+int start(int port) {
     printf("Started...\n");
 
     // SIGINT handler
     printf("Setup sigint handler...");
     if (signal(SIGINT, sigint_handler) == SIG_ERR) {
         perror("SIGINT handler error");
-        exit(EXIT_FAILURE);
+        return -1;
     }
     printf(" done\n");
 
     // SIGPIPE ignore
     if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) {
         perror("SIGPIPE ignore error");
-        exit(EXIT_FAILURE);
+        return -1;
     }
 
     // Socket address
@@ -76,7 +76,7 @@ void start(int port) {
     int ss = socket(AF_INET, SOCK_STREAM, 0);
     if (ss == -1) {
         perror("Server socket creation error");
-        exit(EXIT_FAILURE);
+        return -1;
     }
     printf(" done\n");
 
@@ -86,7 +86,7 @@ void start(int port) {
     if (setsockopt(ss, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1) {
         perror("Sockopt error");
         try_close(ss);
-        exit(EXIT_FAILURE);
+        return -1;
     }
     printf(" done\n");
 
@@ -95,7 +95,7 @@ void start(int port) {
     if (bind(ss, (struct sockaddr*)&s_addr, sizeof(s_addr)) == -1) {
         perror("Bind error");
         try_close(ss);
-        exit(EXIT_FAILURE);
+        return -1;
     }
     printf(" done\n");
 
@@ -103,13 +103,13 @@ void start(int port) {
     if (listen(ss, BACK_LOG) == -1) {
         perror("Listen error");
         try_close(ss);
-        exit(EXIT_FAILURE);
+        return -1;
     }
     printf("Listen on %d\n", port);
 
     int con_counter = 0;
     char* buffer = malloc(BUF_SIZE);
-    if (buffer == NULL) exit(EXIT_FAILURE);
+    if (buffer == NULL) return -1;
 
     // Main cycle
     while (break_flag) {
@@ -159,5 +159,5 @@ void start(int port) {
     try_close(ss);
 
     printf("Shut down...\n");
-    exit(EXIT_SUCCESS);
+    return 0;
 }

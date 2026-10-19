@@ -12,7 +12,5 @@ int main(int argc, char** argv) {
     }
     long port = strtol(argv[1], NULL, 10);
 
-    start(port);
-
-    return 0;
+    return start(port);
 }
