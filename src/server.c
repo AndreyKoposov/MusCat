@@ -48,15 +48,8 @@ void sigint_handler(int sig) {
     break_flag = 0;
 }
 
-int main(int argc, char** argv) {
+void start(int port) {
     printf("Started...\n");
-    // Args
-    if (argc != 2) {
-        printf("Usage: %s <port>\n", argv[0]);
-        exit(EXIT_FAILURE);
-    }
-    // char *end;
-    long port = strtol(argv[1], NULL, 10);
 
     // SIGINT handler
     printf("Setup sigint handler...");
@@ -112,7 +105,7 @@ int main(int argc, char** argv) {
         try_close(ss);
         exit(EXIT_FAILURE);
     }
-    printf("Listen on %ld\n", port);
+    printf("Listen on %d\n", port);
 
     int con_counter = 0;
     char* buffer = malloc(BUF_SIZE);
