@@ -145,9 +145,8 @@ int main(int argc, char** argv) {
             ssize_t bytes = recv(cs, buffer, BUF_SIZE, 0);
             // Recv error
             if (bytes == -1) {
+                if (errno == EINTR) continue;
                 perror("Recv error");
-                if (errno == EINTR)
-                    continue;
                 break;
             }
             // Connection closed
