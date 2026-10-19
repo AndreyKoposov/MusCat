@@ -1,45 +1,50 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 #include <signal.h>
 
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <errno.h>
 
 
 #define BACK_LOG 128
 #define BUF_SIZE 4096
 
-int break_flag = 1;
+volatile sig_atomic_t break_flag = 1;
 
 // Send all bytes from buffer
-void send_all(int fd, char* buf, ssize_t bytes) {
+int send_all(int fd, char* buf, ssize_t bytes) {
     ssize_t total = 0;
     ssize_t sent = 0;
     while (total < bytes) {
         sent = send(fd, buf+total, bytes-total, 0);
         if (sent == -1) {
-            perror("Send error: ");
-            continue;
+            perror("Send error");
+            if (errno == EINTR)
+                continue;
+            return -1;
         }
+        if (sent == 0) return -1;
         total += sent;
     }
+
+    return 0;
 }
 
 // Close fd with error check
 void try_close(int fd) {
     printf("Close socket <%d>...", fd);
     if (close(fd) == -1) {
-        perror("Close error: ");
-        exit(EXIT_FAILURE);
+        perror("Close error");
     }
     printf(" done\n");
 }
 
 // Handler to interrupt main cycle
-void sigint_handler() {
+void sigint_handler(int sig) {
+    (void)sig;
     break_flag = 0;
 }
 
@@ -47,18 +52,25 @@ int main(int argc, char** argv) {
     printf("Started...\n");
     // Args
     if (argc != 2) {
-        printf("Usage: %s <port>", argv[0]);
+        printf("Usage: %s <port>\n", argv[0]);
         exit(EXIT_FAILURE);
     }
-    int port = atoi(argv[1]);
+    // char *end;
+    long port = strtol(argv[1], NULL, 10);
 
     // SIGINT handler
     printf("Setup sigint handler...");
     if (signal(SIGINT, sigint_handler) == SIG_ERR) {
-        perror("SIGINT handler error: ");
+        perror("SIGINT handler error");
         exit(EXIT_FAILURE);
     }
     printf(" done\n");
+
+    // SIGPIPE ignore
+    if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) {
+        perror("SIGPIPE ignore error");
+        exit(EXIT_FAILURE);
+    }
 
     // Socket address
     printf("Create socket...");
@@ -70,7 +82,7 @@ int main(int argc, char** argv) {
     // Socket creation
     int ss = socket(AF_INET, SOCK_STREAM, 0);
     if (ss == -1) {
-        perror("Server socket creation error: ");
+        perror("Server socket creation error");
         exit(EXIT_FAILURE);
     }
     printf(" done\n");
@@ -78,8 +90,8 @@ int main(int argc, char** argv) {
     // Reuse port
     printf("Reuse port...");
     int opt = 1;
-    if (setsockopt(ss, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))) {
-        perror("Sockopt error: ");
+    if (setsockopt(ss, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1) {
+        perror("Sockopt error");
         try_close(ss);
         exit(EXIT_FAILURE);
     }
@@ -88,7 +100,7 @@ int main(int argc, char** argv) {
     // Bind socket
     printf("Bind socket...");
     if (bind(ss, (struct sockaddr*)&s_addr, sizeof(s_addr)) == -1) {
-        perror("Bind error: ");
+        perror("Bind error");
         try_close(ss);
         exit(EXIT_FAILURE);
     }
@@ -96,68 +108,61 @@ int main(int argc, char** argv) {
 
     // Listen on socket
     if (listen(ss, BACK_LOG) == -1) {
-        perror("Listen error: ");
+        perror("Listen error");
         try_close(ss);
         exit(EXIT_FAILURE);
     }
-    printf("Listen on %d\n", port);
+    printf("Listen on %ld\n", port);
+
+    int con_counter = 0;
+    char* buffer = malloc(BUF_SIZE);
+    if (buffer == NULL) exit(EXIT_FAILURE);
 
     // Main cycle
-    int con_counter = 0;
-    char* buffer_in = malloc(BUF_SIZE);
-    char* buffer_out = malloc(BUF_SIZE);
     while (break_flag) {
-        // Clean buffers
-        memset(buffer_in, 0, BUF_SIZE);
-        memset(buffer_out, 0, BUF_SIZE);
-
         // Client accept
         printf("Wait new connection...\n");
         struct sockaddr_in c_addr = {0};
         socklen_t len = sizeof(c_addr);
         int cs = accept(ss, (struct sockaddr*)&c_addr, &len);
         if (cs == -1) {
-            perror("Accept error: ");
+            if (errno == EINTR) continue;
+            perror("Accept error");
             continue;
         }
-        printf("\n====\n");
-        printf("New connection #%d\n", con_counter);
-        printf("Host: %s:%d\nSocket: %d\n", inet_ntoa(c_addr.sin_addr), ntohs(c_addr.sin_port), cs);
-        printf("====\n");
         con_counter++;
 
+        char address[32];
+        printf("\n====\n");
+        printf("New connection #%d\n", con_counter);
+        printf("Host: %s:%d\nSocket: %d\n", 
+                inet_ntop(AF_INET, &c_addr.sin_addr, address, sizeof(address)), 
+                ntohs(c_addr.sin_port), cs);
+        printf("====\n");
+
         // Read cycle
-        ssize_t begin = 0;
         while (break_flag) {
-            ssize_t bytes = recv(cs, buffer_in+begin, BUF_SIZE-begin, 0);
+            ssize_t bytes = recv(cs, buffer, BUF_SIZE, 0);
             // Recv error
             if (bytes == -1) {
-                perror("Recv error: ");
-                continue;
+                perror("Recv error");
+                if (errno == EINTR)
+                    continue;
+                break;
             }
             // Connection closed
             if (bytes == 0) {
                 printf("Connectoin closed by client\n");
                 break;
             }
-            // Buffer overflow
-            if (begin + bytes >= BUF_SIZE) {
-                memcpy(buffer_in, buffer_in+begin, bytes);
-                memset(buffer_in+bytes, 0, BUF_SIZE-bytes);
-                begin = 0;
-            }
             // Send
-            memcpy(buffer_out, buffer_in+begin, bytes);
-            send_all(cs, buffer_out, bytes);
-            memset(buffer_out, 0, BUF_SIZE);
-            
-            begin += bytes;
+            if (send_all(cs, buffer, bytes) == -1)
+                break;     
         }
 
         try_close(cs);
     }
-    free(buffer_in);
-    free(buffer_out);
+    free(buffer);
 
     try_close(ss);
 
