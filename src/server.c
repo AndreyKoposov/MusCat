@@ -14,11 +14,12 @@
 
 int break_flag = 1;
 
+// Send all bytes from buffer
 void send_all(int fd, char* buf, ssize_t bytes) {
     ssize_t total = 0;
     ssize_t sent = 0;
     while (total < bytes) {
-        sent = send(fd, buf, BUF_SIZE, 0);
+        sent = send(fd, buf+total, bytes-total, 0);
         if (sent == -1) {
             perror("Send error: ");
             continue;
@@ -27,6 +28,7 @@ void send_all(int fd, char* buf, ssize_t bytes) {
     }
 }
 
+// Close fd with error check
 void try_close(int fd) {
     printf("Close socket <%d>...", fd);
     if (close(fd) == -1) {
@@ -36,6 +38,7 @@ void try_close(int fd) {
     printf(" done\n");
 }
 
+// Handler to interrupt main cycle
 void sigint_handler() {
     break_flag = 0;
 }
@@ -100,9 +103,14 @@ int main(int argc, char** argv) {
     printf("Listen on %d\n", port);
 
     // Main cycle
+    int con_counter = 0;
     char* buffer_in = malloc(BUF_SIZE);
     char* buffer_out = malloc(BUF_SIZE);
     while (break_flag) {
+        // Clean buffers
+        memset(buffer_in, 0, BUF_SIZE);
+        memset(buffer_out, 0, BUF_SIZE);
+
         // Client accept
         printf("Wait new connection...\n");
         struct sockaddr_in c_addr = {0};
@@ -113,27 +121,37 @@ int main(int argc, char** argv) {
             continue;
         }
         printf("\n====\n");
-        printf("New connection\n");
+        printf("New connection #%d\n", con_counter);
         printf("Host: %s:%d\nSocket: %d\n", inet_ntoa(c_addr.sin_addr), ntohs(c_addr.sin_port), cs);
         printf("====\n");
+        con_counter++;
 
         // Read cycle
+        ssize_t begin = 0;
         while (break_flag) {
-            ssize_t bytes = recv(cs, buffer_in, BUF_SIZE, 0);
+            ssize_t bytes = recv(cs, buffer_in+begin, BUF_SIZE-begin, 0);
+            // Recv error
             if (bytes == -1) {
                 perror("Recv error: ");
                 continue;
             }
+            // Connection closed
             if (bytes == 0) {
                 printf("Connectoin closed by client\n");
                 break;
             }
-
-            memcpy(buffer_out, buffer_in, bytes);
-            memset(buffer_in, 0, bytes);
-
+            // Buffer overflow
+            if (begin + bytes >= BUF_SIZE) {
+                memcpy(buffer_in, buffer_in+begin, bytes);
+                memset(buffer_in+bytes, 0, BUF_SIZE-bytes);
+                begin = 0;
+            }
+            // Send
+            memcpy(buffer_out, buffer_in+begin, bytes);
             send_all(cs, buffer_out, bytes);
-            memset(buffer_out, 0, bytes);
+            memset(buffer_out, 0, BUF_SIZE);
+            
+            begin += bytes;
         }
 
         try_close(cs);
