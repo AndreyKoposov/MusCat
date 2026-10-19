@@ -10,12 +10,12 @@ TEST_DIR  := tests
 BUILD_DIR := build
 
 # --- Files ---
-LIB_SRC := ${SRC_DIR}/server/core.c
-LIB_OBJ := ${BUILD_DIR}/core.o
-LIB     := $(BUILD_DIR)/libserver.a
+# LIB_SRC := ${SRC_DIR}/server/core.c
+# LIB_OBJ := ${BUILD_DIR}/core.o
+# LIB     := $(BUILD_DIR)/libserver.a
 
-APP_SRC	:= $(SRC_DIR)/main.c
-APP_OBJ	:= $(BUILD_DIR)/main.o
+APP_SRC	:= $(SRC_DIR)/server.c
+APP_OBJ	:= $(BUILD_DIR)/server.o
 APP 	:= $(BUILD_DIR)/muscat
 
 TEST_SRC := $(SRC_DIR)/test.c
@@ -31,18 +31,18 @@ TEST_LIBS := -lcunit
 all: app
 
 # --- Static lib ---
-lib: $(LIB)
+# lib: $(LIB)
 
-$(LIB): $(LIB_OBJ)
-	$(AR) $(ARFLAGS) $@ $^
+# $(LIB): $(LIB_OBJ)
+# 	$(AR) $(ARFLAGS) $@ $^
 
-$(LIB_OBJ): $(LIB_SRC) | $(BUILD_DIR)
-	$(CC) $(CFLAGS) -c $< -o $@
+# $(LIB_OBJ): $(LIB_SRC) | $(BUILD_DIR)
+# 	$(CC) $(CFLAGS) -c $< -o $@
 
 # --- Main app ---
 app: $(APP)
 
-$(APP): $(APP_OBJ) $(LIB)
+$(APP): $(APP_OBJ) #$(LIB)
 	$(CC) $^ -o $@
 
 $(APP_OBJ): $(APP_SRC) | $(BUILD_DIR)
@@ -52,7 +52,7 @@ $(APP_OBJ): $(APP_SRC) | $(BUILD_DIR)
 test: $(TEST)
 	./$(TEST)
 
-$(TEST): $(TEST_OBJ) $(LIB)
+$(TEST): $(TEST_OBJ) #$(LIB)
 	$(CC) $^ $(TEST_LIBS) -o $@
 
 $(TEST_OBJ): $(TEST_SRC) | $(BUILD_DIR)
