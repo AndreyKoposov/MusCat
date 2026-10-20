@@ -49,7 +49,7 @@ void sigint_handler(int sig) {
     break_flag = 0;
 }
 
-// Statrs server
+// Statrs server on port
 int start(int port) {
     printf("Started...\n");
 
