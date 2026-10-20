@@ -9,6 +9,6 @@ if ! make test; then
     exit 1
 fi
 
-"✅ Tests passed! Successful commit."
+echo "✅ Tests passed! Successful commit."
 
 exit 0
