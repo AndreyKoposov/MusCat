@@ -18,7 +18,9 @@ int main() {
 
   /* add the tests to the suite */
   /* NOTE - ORDER IS IMPORTANT - MUST TEST fread() AFTER fprintf() */
-  CU_pTest success = CU_add_test(pSuite, "test of server", test_server);
+  CU_pTest success = NULL;
+  success = CU_add_test(pSuite, "Test long message", test_server_long_msg);
+  success = CU_add_test(pSuite, "Test many connections", test_server_many_conn);
   if (success == NULL) {
     CU_cleanup_registry();
     return CU_get_error();
