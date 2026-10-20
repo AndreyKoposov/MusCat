@@ -38,6 +38,7 @@ void try_close(int fd) {
     printf("Close socket <%d>...", fd);
     if (close(fd) == -1) {
         perror("Close error");
+        return;
     }
     printf(" done\n");
 }
