@@ -8,8 +8,8 @@ SRC_DIR   := src
 TEST_DIR  := tests
 BUILD_DIR := build
 
-LIB_SRC := $(SRC_DIR)/server.c $(SRC_DIR)/args_parse.c
-LIB_OBJ := $(BUILD_DIR)/server.o $(BUILD_DIR)/args_parse.o
+LIB_SRC := $(SRC_DIR)/server.c $(SRC_DIR)/args_parse.c $(SRC_DIR)/http.c
+LIB_OBJ := $(BUILD_DIR)/server.o $(BUILD_DIR)/args_parse.o $(BUILD_DIR)/http.o
 LIB     := $(BUILD_DIR)/libserver.a
 
 APP_SRC := $(SRC_DIR)/main.c

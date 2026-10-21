@@ -2,11 +2,14 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
+#include <string.h>
 
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <errno.h>
+
+#include "http.h"
 
 
 #define BACK_LOG 128
@@ -136,7 +139,7 @@ int start(int port) {
         printf("====\n");
 
         // Read cycle
-        while (break_flag) {
+        do {
             ssize_t bytes = recv(cs, buffer, BUF_SIZE, 0);
             // Recv error
             if (bytes == -1) {
@@ -149,10 +152,31 @@ int start(int port) {
                 printf("Connectoin closed by client\n");
                 break;
             }
+            // Response struct
+            struct response res = {0};
+            char* body = "<h1>Hello World!</h1>";
+            int body_len = strlen(body);
+            char len_str[8];
+            snprintf(len_str, 8, "%d", body_len);
+            struct header header_content_type = {.name="Content-Type", .value="text/html; charset=utf-8"};
+            struct header header_content_len = {.name="Content-Length", .value=len_str};
+            struct header header_connection = {.name="Connection", .value="close"};
+            // Constuct
+            strcpy(res.version, "HTTP/1.1");
+            res.status = 200;
+            strcpy(res.phrase, "OK");
+            res.content.headers_n = 3;
+            res.content.headers[0] = header_content_type;
+            res.content.headers[1] = header_content_len;
+            res.content.headers[2] = header_connection;
+            res.content.body_len = body_len;
+            res.content.body = body;
+
+            serialize_response(&res, buffer, BUF_SIZE);
             // Send
             if (send_all(cs, buffer, bytes) == -1)
                 break;     
-        }
+        } while(0);
 
         try_close(cs);
     }
