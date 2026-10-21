@@ -39,19 +39,44 @@ int add_status_line(struct response* res, const char* version, int status, const
     strcpy(res->version, version);
     res->status = status;
     strcpy(res->phrase, phrase);
+
+    return 0;
 }
 
 int add_header(struct response* res, const char* name, const char* value) {
     if (strlen(name) >= MAX_NAME_L) return -1;
     if (strlen(value) >= MAX_VAL_L) return -1;
 
-    struct header header = {.name=name, .value=value};
+    struct header header = {0};
+    strcpy(header.name, name);
+    strcpy(header.value, value);
 
     int index = res->content.headers_n;
     res->content.headers[index] = header;
     res->content.headers_n++;
+
+    return 0;
 }
 
-int add_date(struct response* res);
+int add_date(struct response* res) {
+    add_header(res, "Date", "Time");
 
-int add_body(struct response* res, char* body);
+    return 0;
+}
+
+int add_body(struct response* res, char* body) {
+    int body_len = -1;
+    if (body == NULL) {
+        body_len = 0;
+    } else {
+        body_len = strlen(body);
+    }
+
+    char len_str[8];
+    snprintf(len_str, sizeof(len_str), "%d", body_len);
+    add_header(res, "Content-Length", len_str);
+    res->content.body_len = body_len;
+    res->content.body = body;
+
+    return 0;
+}

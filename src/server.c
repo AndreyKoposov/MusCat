@@ -154,25 +154,14 @@ int start(int port) {
             }
             // Response struct
             struct response res = {0};
-            char* body = "<h1>Hello World!</h1>";
-            int body_len = strlen(body);
-            char len_str[8];
-            snprintf(len_str, 8, "%d", body_len);
-            struct header header_content_type = {.name="Content-Type", .value="text/html; charset=utf-8"};
-            struct header header_content_len = {.name="Content-Length", .value=""};
-            strncpy(header_content_len.value, len_str, 8);
-            struct header header_connection = {.name="Connection", .value="close"};
-            // Constuct
-            strcpy(res.version, "HTTP/1.1");
-            res.status = 200;
-            strcpy(res.phrase, "OK");
-            res.content.headers_n = 3;
-            res.content.headers[0] = header_content_type;
-            res.content.headers[1] = header_content_len;
-            res.content.headers[2] = header_connection;
-            res.content.body_len = body_len;
-            res.content.body = body;
 
+            char* body = "<h1>Hello World!</h1>";
+            add_status_line(&res, "HTTP/1.1", 200, "OK");
+            add_header(&res, "Content-Type", "text/html; charset=utf-8");
+            add_header(&res, "Connection", "close");
+            add_date(&res);
+            add_body(&res, body);
+    
             serialize_response(&res, buffer, BUF_SIZE);
             // Send
             if (send_all(cs, buffer, strlen(buffer)) == -1)
