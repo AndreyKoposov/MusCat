@@ -10,7 +10,6 @@ void test_serialize(void) {
     // Arrange
     struct response res = {0};
     char* buffer = malloc(BUF_SIZE);
-    int valid = 0;
 
     char* body = "<h1>Привет Мир!</h1>";
     add_status_line_res(&res, "HTTP/1.1", 200, get_phrase(200));
@@ -29,7 +28,7 @@ void test_serialize(void) {
     int status = serialize_response(&res, buffer, BUF_SIZE);
 
     // Assert
-    CU_ASSERT_EQUAL(status, 0);
+    CU_ASSERT_EQUAL(status, 200);
     CU_ASSERT_NSTRING_EQUAL(buffer, expected, BUF_SIZE);
 
     // Clean
