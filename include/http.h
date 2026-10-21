@@ -7,8 +7,8 @@
 #define MAX_PHRASE_L 32
 
 typedef struct header {
-    char name[MAX_NAME_L];
-    char value[MAX_VAL_L];
+    char name[MAX_NAME_L+1];
+    char value[MAX_VAL_L+1];
 } header;
 
 typedef struct content {
@@ -19,16 +19,16 @@ typedef struct content {
 } content;
 
 typedef struct request {
-    char version[MAX_VERS_L];
-    char path[MAX_PATH_L];
-    char method[MAX_METHOD_L];
+    char version[MAX_VERS_L+1];
+    char path[MAX_PATH_L+1];
+    char method[MAX_METHOD_L+1];
     struct content content;
 } request;
 
 typedef struct response {
-    char version[MAX_VERS_L];
+    char version[MAX_VERS_L+1];
     int status;
-    char phrase[MAX_PHRASE_L];
+    char phrase[MAX_PHRASE_L+1];
     struct content content;
 } response;
 
