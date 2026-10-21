@@ -30,3 +30,28 @@ int serialize_response(struct response* res, char* text, size_t len) {
 
     return 0;
 }
+
+int add_status_line(struct response* res, const char* version, int status, const char* phrase) {
+    if (strlen(version) >= MAX_VERS_L) return -1;
+    if (strlen(phrase) >= MAX_PHRASE_L) return -1;
+    if (status < 100 || status >= 600) return -1;
+
+    strcpy(res->version, version);
+    res->status = status;
+    strcpy(res->phrase, phrase);
+}
+
+int add_header(struct response* res, const char* name, const char* value) {
+    if (strlen(name) >= MAX_NAME_L) return -1;
+    if (strlen(value) >= MAX_VAL_L) return -1;
+
+    struct header header = {.name=name, .value=value};
+
+    int index = res->content.headers_n;
+    res->content.headers[index] = header;
+    res->content.headers_n++;
+}
+
+int add_date(struct response* res);
+
+int add_body(struct response* res, char* body);
