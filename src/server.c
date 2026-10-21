@@ -155,8 +155,8 @@ int start(int port) {
             // Response struct
             struct response res = {0};
 
-            char* body = "<h1>Hello World!</h1>";
-            add_status_line(&res, "HTTP/1.1", 200, "OK");
+            char* body = "<h1>Привет Мир!</h1>";
+            add_status_line_res(&res, "HTTP/1.1", 200, get_phrase(200));
             add_header(&res, "Content-Type", "text/html; charset=utf-8");
             add_header(&res, "Connection", "close");
             add_date(&res);

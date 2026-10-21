@@ -16,8 +16,8 @@ APP_SRC := $(SRC_DIR)/main.c
 APP_OBJ := $(BUILD_DIR)/main.o
 APP     := $(BUILD_DIR)/muscat
 
-TEST_SRC := $(TEST_DIR)/test.c $(TEST_DIR)/test_server.c
-TEST_OBJ := $(BUILD_DIR)/test.o $(BUILD_DIR)/test_server.o
+TEST_SRC := $(TEST_DIR)/test.c $(TEST_DIR)/test_server.c $(TEST_DIR)/test_http.c
+TEST_OBJ := $(BUILD_DIR)/test.o $(BUILD_DIR)/test_server.o $(BUILD_DIR)/test_http.o
 TEST     := $(BUILD_DIR)/test
 
 TEST_LIBS := -lcunit

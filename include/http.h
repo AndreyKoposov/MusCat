@@ -6,6 +6,7 @@
 #define MAX_METHOD_L 16
 #define MAX_PHRASE_L 32
 
+
 typedef struct header {
     char name[MAX_NAME_L+1];
     char value[MAX_VAL_L+1];
@@ -32,11 +33,15 @@ typedef struct response {
     struct content content;
 } response;
 
+const char* get_phrase(int status);
+
 int deserialize_request(char* text, size_t len, struct request* req);
 
 int serialize_response(struct response* res, char* text, size_t len);
 
-int add_status_line(struct response* res, const char* version, int status, const char* phrase);
+int add_status_line_res(struct response* res, const char* version, int status, const char* phrase);
+
+int add_status_line_req(struct request* req, const char* version, const char* path, const char* method);
 
 int add_header(struct response* res, const char* name, const char* value);
 
