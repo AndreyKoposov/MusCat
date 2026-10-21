@@ -159,7 +159,8 @@ int start(int port) {
             char len_str[8];
             snprintf(len_str, 8, "%d", body_len);
             struct header header_content_type = {.name="Content-Type", .value="text/html; charset=utf-8"};
-            struct header header_content_len = {.name="Content-Length", .value=len_str};
+            struct header header_content_len = {.name="Content-Length", .value=""};
+            strncpy(header_content_len.value, len_str, 8);
             struct header header_connection = {.name="Connection", .value="close"};
             // Constuct
             strcpy(res.version, "HTTP/1.1");
@@ -174,7 +175,7 @@ int start(int port) {
 
             serialize_response(&res, buffer, BUF_SIZE);
             // Send
-            if (send_all(cs, buffer, bytes) == -1)
+            if (send_all(cs, buffer, strlen(buffer)) == -1)
                 break;     
         } while(0);
 
