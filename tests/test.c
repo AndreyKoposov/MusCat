@@ -23,6 +23,8 @@ int main() {
   // success = CU_add_test(pSuite, "Test long message", test_server_long_msg);
   // success = CU_add_test(pSuite, "Test many connections", test_server_many_conn);
   success = CU_add_test(httpS, "Test serialize", test_serialize);
+  success = CU_add_test(httpS, "Test add status line", test_add_status_line_res_pos);
+  success = CU_add_test(httpS, "Test add status line negative", test_add_status_line_res_neg);
   if (success == NULL) {
     CU_cleanup_registry();
     return CU_get_error();
