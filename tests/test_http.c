@@ -28,10 +28,33 @@ void test_serialize(void) {
     int status = serialize_response(&res, buffer, BUF_SIZE);
 
     // Assert
-    CU_ASSERT_EQUAL(status, 200);
+    CU_ASSERT_EQUAL(status, strlen(expected));
     CU_ASSERT_NSTRING_EQUAL(buffer, expected, BUF_SIZE);
 
     // Clean
+    free(buffer);
+}
+
+void test_serialize_overflow(void) {
+    // Arrange
+    struct response res = {0};
+    char* buffer = malloc(BUF_SIZE);
+
+    char* body = malloc(BUF_SIZE*2);
+    memset(body, 'A', BUF_SIZE*2);
+    add_status_line_res(&res, "HTTP/1.1", 200, get_phrase(200));
+    add_header(&res, "Content-Type", "text/html; charset=utf-8");
+    add_header(&res, "Connection", "close");
+    add_body(&res, body);
+
+    // Act
+    int status = serialize_response(&res, buffer, BUF_SIZE);
+
+    // Assert
+    CU_ASSERT_EQUAL(status, -1);
+
+    // Clean
+    free(body);
     free(buffer);
 }
 

@@ -15,7 +15,7 @@ typedef struct header {
 typedef struct content {
     int headers_n;
     struct header headers[MAX_HEADERS_N];
-    int body_len;
+    size_t body_len;
     char* body;
 } content;
 

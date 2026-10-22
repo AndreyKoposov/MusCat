@@ -50,24 +50,31 @@ int deserialize_request(char* text, size_t len, struct request* req) {
 }
 
 int serialize_response(struct response* res, char* text, size_t maxlen) {
-    int n = snprintf(text, maxlen, "%s %d %s\r\n", res->version, res->status, res->phrase);
-    if (n < 0 || n >= (int)maxlen) return 400;
+    // Status line
+    int total = snprintf(text, maxlen, "%s %d %s\r\n", res->version, res->status, res->phrase);
+    if (total < 0 || total >= (int)maxlen) return -1;
 
+    // Headers
     for (int i = 0; i < res->content.headers_n; i++) {
         struct header header = res->content.headers[i];
-        char header_str[MAX_NAME_L + MAX_VAL_L + 7]; // 6 = ": " + "\r\n\r\n" + "\0"
-
-        int k = snprintf(header_str, sizeof(header_str), "%s: %s\r\n", header.name, header.value);
-        if (k < 0 || k >= (int)sizeof(header_str)) return 400;
-        
-        strncat(text, header_str, k);
+        int k = snprintf(text+total, maxlen-total, "%s: %s\r\n", header.name, header.value);
+        if (k < 0 || k >= (int)maxlen-total) return -1;
+        total += k;
     }
 
-    strcat(text, "\r\n");
-    if (res->content.body != NULL)
-        strncat(text, res->content.body, res->content.body_len);
+    // \r\n
+    int k = snprintf(text+total, maxlen-total, "\r\n");
+    if (k < 0 || k >= (int)maxlen-total) return -1;
+    total += k;
 
-    return 200;
+    // Body
+    if (res->content.body != NULL) {
+        if (res->content.body_len > maxlen-total) return -1;
+        memcpy(text+total, res->content.body, res->content.body_len);
+        total += res->content.body_len;
+    }
+
+    return total;
 }
 
 int add_status_line_res(struct response* res, const char* version, int status, const char* phrase) {
