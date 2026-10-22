@@ -1,3 +1,5 @@
+#define _POSIX_C_SOURCE 200809L
+
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
@@ -116,10 +118,11 @@ int add_header(struct response* res, const char* name, const char* value) {
 int add_date(struct response* res) {
     time_t current;
     time(&current);
-    const struct tm* current_gm = gmtime(&current);
+    struct tm current_gm = {0};
+    gmtime_r(&current, &current_gm);
 
     char time_str[MAX_VAL_L];
-    strftime(time_str, sizeof(time_str), "%a, %d %b %Y %H:%M:%S GMT", current_gm);
+    strftime(time_str, sizeof(time_str), "%a, %d %b %Y %H:%M:%S GMT", &current_gm);
 
     return add_header(res, "Date", time_str);
 }
