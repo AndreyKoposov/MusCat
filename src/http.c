@@ -124,17 +124,10 @@ int add_date(struct response* res) {
     return add_header(res, "Date", time_str);
 }
 
-int add_body(struct response* res, char* body) {
-    int body_len = -1;
-    if (body == NULL) {
-        body_len = 0;
-    } else {
-        body_len = strlen(body);
-    }
-
+int add_body(struct response* res, void* body, size_t body_len) {
     // int -> str
-    char len_str[9];
-    int n = snprintf(len_str, sizeof(len_str), "%d", body_len);
+    char len_str[21];
+    int n = snprintf(len_str, sizeof(len_str), "%ld", body_len);
     if (n < 0 || n >= (int)sizeof(len_str)) return 400;
 
     add_header(res, "Content-Length", len_str);

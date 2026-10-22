@@ -1,3 +1,6 @@
+#include <stdlib.h>
+
+
 #define MAX_HEADERS_N 64
 #define MAX_NAME_L 64
 #define MAX_VAL_L 256
@@ -16,7 +19,7 @@ typedef struct content {
     int headers_n;
     struct header headers[MAX_HEADERS_N];
     size_t body_len;
-    char* body;
+    void* body;
 } content;
 
 typedef struct request {
@@ -47,4 +50,4 @@ int add_header(struct response* res, const char* name, const char* value);
 
 int add_date(struct response* res);
 
-int add_body(struct response* res, char* body);
+int add_body(struct response* res, void* body, size_t body_len);

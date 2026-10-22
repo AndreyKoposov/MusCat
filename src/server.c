@@ -160,7 +160,7 @@ int start(int port) {
             add_header(&res, "Content-Type", "text/html; charset=utf-8");
             add_header(&res, "Connection", "close");
             add_date(&res);
-            add_body(&res, body);
+            add_body(&res, body, strlen(body));
     
             serialize_response(&res, buffer, BUF_SIZE);
             // Send
