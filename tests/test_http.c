@@ -106,12 +106,14 @@ void test_add_status_line_res_neg(void) {
     int status2 = add_status_line_res(&res, "HTTP/1.0", 67, get_phrase(404));
     int status3 = add_status_line_res(&res, "HTTP/1.1", 500, long_phrase);
     int status4 = add_status_line_res(&res, long_version, 200, get_phrase(200));
+    int status5 = add_status_line_res(&res, "HTTP/1.1garbage", 200, get_phrase(200));
 
     // Assert
     CU_ASSERT_EQUAL(status1, 400);
     CU_ASSERT_EQUAL(status2, 400);
     CU_ASSERT_EQUAL(status3, 400);
     CU_ASSERT_EQUAL(status4, 400);
+    CU_ASSERT_EQUAL(status5, 400);
 
     // Clean
     free(long_phrase);

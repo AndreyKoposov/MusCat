@@ -19,10 +19,10 @@ int validate_version(const char* version) {
     if (strlen(version) > MAX_VERS_L) 
         return 400;
     else
-    if (strncmp("HTTP/1.1", version, MAX_VERS_L) == 0)
+    if (strcmp("HTTP/1.1", version) == 0)
         return 200;
     else 
-    if (strncmp("HTTP/1.0", version, MAX_VERS_L) == 0)
+    if (strcmp("HTTP/1.0", version) == 0)
         return 200;
     else
         return 400;
@@ -106,6 +106,7 @@ int add_header(struct response* res, const char* name, const char* value) {
     strcpy(header.value, value);
 
     int index = res->content.headers_n;
+    if (index >= MAX_HEADERS_N) return 400;
     res->content.headers[index] = header;
     res->content.headers_n++;
 
@@ -120,9 +121,7 @@ int add_date(struct response* res) {
     char time_str[MAX_VAL_L];
     strftime(time_str, sizeof(time_str), "%a, %d %b %Y %H:%M:%S GMT", current_gm);
 
-    add_header(res, "Date", time_str);
-
-    return 200;
+    return add_header(res, "Date", time_str);
 }
 
 int add_body(struct response* res, char* body) {
