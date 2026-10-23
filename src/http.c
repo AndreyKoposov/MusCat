@@ -69,6 +69,7 @@ int serialize_response(struct response* res, char* text, size_t maxlen) {
         memcpy(text+total, res->content.body, res->content.body_len);
         total += res->content.body_len;
     }
+    text[total] = '\0';
 
     return total;
 }
@@ -147,7 +148,7 @@ int deserialize_header(char* h, struct request* req) {
     char* name = h;
     char* value = pointer;
 
-    if (strcmp(name, "Content-Length")) {
+    if (strcmp(name, "Content-Length") == 0) {
         return add_content_len(&req->content, str_to_int(value));
     }
 
