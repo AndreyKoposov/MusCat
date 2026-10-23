@@ -15,7 +15,8 @@ void test_serialize(void) {
     add_status_line_res(&res, "HTTP/1.1", 200, get_phrase(200));
     add_header(&res.content, "Content-Type", "text/html; charset=utf-8");
     add_header(&res.content, "Connection", "close");
-    add_body(&res.content, body, strlen(body));
+    add_content_len(&res.content, strlen(body));
+    add_body(&res.content, body);
 
     const char* expected = "HTTP/1.1 200 OK\r\n"
                            "Content-Type: text/html; charset=utf-8\r\n"
@@ -45,7 +46,8 @@ void test_serialize_overflow(void) {
     add_status_line_res(&res, "HTTP/1.1", 200, get_phrase(200));
     add_header(&res.content, "Content-Type", "text/html; charset=utf-8");
     add_header(&res.content, "Connection", "close");
-    add_body(&res.content, body, BUF_SIZE*2);
+    add_content_len(&res.content, BUF_SIZE*2);
+    add_body(&res.content, body);
 
     // Act
     int status = serialize_response(&res, buffer, BUF_SIZE);

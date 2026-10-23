@@ -5,6 +5,7 @@
 #include <time.h>
 
 #include "http.h"
+#include "str_int.h"
 
 
 const char* get_phrase(int status) {
@@ -124,14 +125,15 @@ int add_date(struct content* c) {
     return add_header(c, "Date", time_str);
 }
 
-int add_body(struct content* c, void* body, size_t body_len) {
-    // int -> str
+int add_content_len(struct content* c, size_t len) {
     char len_str[21];
-    int n = snprintf(len_str, sizeof(len_str), "%ld", body_len);
-    if (n < 0 || n >= (int)sizeof(len_str)) return 400;
+    int_to_str(len, len_str, 21);
+    c->body_len = len;
 
-    add_header(c, "Content-Length", len_str);
-    c->body_len = body_len;
+    return add_header(c, "Content-Length", len_str);
+}
+
+int add_body(struct content* c, void* body) {
     c->body = body;
 
     return 200;
@@ -145,10 +147,15 @@ int deserialize_header(char* h, struct request* req) {
     char* name = h;
     char* value = pointer;
 
+    if (strcmp(name, "Content-Length")) {
+        return add_content_len(&req->content, str_to_int(value));
+    }
+
     return add_header(&req->content, name, value);
 }
 
 int deserialize_request(char* text, struct request* req) {
+    int status = 200;
     char* sep = strstr(text, "\r\n");
     *sep = '\0';
     char* pointer = sep + 2;
@@ -156,12 +163,14 @@ int deserialize_request(char* text, struct request* req) {
     const char* method = strtok(text, " ");
     const char* path = strtok(NULL, " ");
     const char* version = strtok(NULL, " ");
-    add_status_line_req(req, method, path, version);
+    if ((status = add_status_line_req(req, method, path, version)) != 200)
+        return status;
 
     while (strlen(pointer) > 0) {
         sep = strstr(pointer, "\r\n");
         *sep = '\0';
-        deserialize_header(pointer, req);
+        if ((status = deserialize_header(pointer, req)) != 200)
+            return status;
         pointer = sep + 2;
     }
 

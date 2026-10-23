@@ -50,4 +50,6 @@ int add_header(struct content* c, const char* name, const char* value);
 
 int add_date(struct content* c);
 
-int add_body(struct content* c, void* body, size_t body_len);
+int add_content_len(struct content* c, size_t len);
+
+int add_body(struct content* c, void* body);

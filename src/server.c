@@ -173,7 +173,8 @@ int start(int port) {
             add_header(&res.content, "Content-Type", "text/html; charset=utf-8");
             add_header(&res.content, "Connection", "close");
             add_date(&res.content);
-            add_body(&res.content, body, strlen(body));
+            add_content_len(&res.content, strlen(body));
+            add_body(&res.content, body);
     
             serialize_response(&res, buffer, BUF_SIZE);
             // Send

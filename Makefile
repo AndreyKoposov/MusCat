@@ -8,16 +8,16 @@ SRC_DIR   := src
 TEST_DIR  := tests
 BUILD_DIR := build
 
-LIB_SRC := $(SRC_DIR)/server.c $(SRC_DIR)/args_parse.c $(SRC_DIR)/http.c
-LIB_OBJ := $(BUILD_DIR)/server.o $(BUILD_DIR)/args_parse.o $(BUILD_DIR)/http.o
+LIB_SRC := $(SRC_DIR)/server.c $(SRC_DIR)/args_parse.c $(SRC_DIR)/http.c $(SRC_DIR)/str_int.c
+LIB_OBJ := $(BUILD_DIR)/server.o $(BUILD_DIR)/args_parse.o $(BUILD_DIR)/http.o $(BUILD_DIR)/str_int.o
 LIB     := $(BUILD_DIR)/libserver.a
 
 APP_SRC := $(SRC_DIR)/main.c
 APP_OBJ := $(BUILD_DIR)/main.o
 APP     := $(BUILD_DIR)/muscat
 
-TEST_SRC := $(TEST_DIR)/test.c $(TEST_DIR)/test_server.c $(TEST_DIR)/test_http.c
-TEST_OBJ := $(BUILD_DIR)/test.o $(BUILD_DIR)/test_server.o $(BUILD_DIR)/test_http.o
+TEST_SRC := $(TEST_DIR)/test.c $(TEST_DIR)/test_server.c $(TEST_DIR)/test_http.c $(SRC_DIR)/str_int.c
+TEST_OBJ := $(BUILD_DIR)/test.o $(BUILD_DIR)/test_server.o $(BUILD_DIR)/test_http.o $(BUILD_DIR)/str_int.o
 TEST     := $(BUILD_DIR)/test
 
 TEST_LIBS := -lcunit
