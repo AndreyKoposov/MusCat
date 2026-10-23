@@ -44,13 +44,6 @@ int validate_phrase(const char* phrase) {
         return 200;
 }
 
-int deserialize_request(char* text, size_t len, struct request* req) {
-    (void)text;
-    (void)len;
-    (void)req;
-    return 200;
-}
-
 int serialize_response(struct response* res, char* text, size_t maxlen) {
     // Status line
     int total = snprintf(text, maxlen, "%s %d %s\r\n", res->version, res->status, res->phrase);
@@ -91,15 +84,19 @@ int add_status_line_res(struct response* res, const char* version, int status, c
     return 200;
 }
 
-int add_status_line_req(struct request* req, const char* version, const char* path, const char* method) {
-    (void)req;
-    (void)version;
-    (void)path;
-    (void)method;
+int add_status_line_req(struct request* req, const char* method, const char* path, const char* version) {
+    // if (validate_version(version) != 200) return 400;
+    // if (validate_status(status) != 200) return 400;
+    if (validate_version(version) != 200) return 400;
+
+    strcpy(req->method, method);
+    strcpy(req->path, path);
+    strcpy(req->version, version);
+
     return 200;
 }
 
-int add_header(struct response* res, const char* name, const char* value) {
+int add_header(struct content* c, const char* name, const char* value) {
     if (strlen(name) > MAX_NAME_L) return 400;
     if (strlen(value) > MAX_VAL_L) return 400;
 
@@ -107,15 +104,15 @@ int add_header(struct response* res, const char* name, const char* value) {
     strcpy(header.name, name);
     strcpy(header.value, value);
 
-    int index = res->content.headers_n;
+    int index = c->headers_n;
     if (index >= MAX_HEADERS_N) return 400;
-    res->content.headers[index] = header;
-    res->content.headers_n++;
+    c->headers[index] = header;
+    c->headers_n++;
 
     return 200;
 }
 
-int add_date(struct response* res) {
+int add_date(struct content* c) {
     time_t current;
     time(&current);
     struct tm current_gm = {0};
@@ -124,18 +121,49 @@ int add_date(struct response* res) {
     char time_str[MAX_VAL_L];
     strftime(time_str, sizeof(time_str), "%a, %d %b %Y %H:%M:%S GMT", &current_gm);
 
-    return add_header(res, "Date", time_str);
+    return add_header(c, "Date", time_str);
 }
 
-int add_body(struct response* res, void* body, size_t body_len) {
+int add_body(struct content* c, void* body, size_t body_len) {
     // int -> str
     char len_str[21];
     int n = snprintf(len_str, sizeof(len_str), "%ld", body_len);
     if (n < 0 || n >= (int)sizeof(len_str)) return 400;
 
-    add_header(res, "Content-Length", len_str);
-    res->content.body_len = body_len;
-    res->content.body = body;
+    add_header(c, "Content-Length", len_str);
+    c->body_len = body_len;
+    c->body = body;
+
+    return 200;
+}
+
+int deserialize_header(char* h, struct request* req) {
+    char* sep = strstr(h, ": ");
+    *sep = '\0';
+    char* pointer = sep + 2;
+
+    char* name = h;
+    char* value = pointer;
+
+    return add_header(&req->content, name, value);
+}
+
+int deserialize_request(char* text, struct request* req) {
+    char* sep = strstr(text, "\r\n");
+    *sep = '\0';
+    char* pointer = sep + 2;
+
+    const char* method = strtok(text, " ");
+    const char* path = strtok(NULL, " ");
+    const char* version = strtok(NULL, " ");
+    add_status_line_req(req, method, path, version);
+
+    while (strlen(pointer) > 0) {
+        sep = strstr(pointer, "\r\n");
+        *sep = '\0';
+        deserialize_header(pointer, req);
+        pointer = sep + 2;
+    }
 
     return 200;
 }

@@ -23,9 +23,9 @@ typedef struct content {
 } content;
 
 typedef struct request {
-    char version[MAX_VERS_L+1];
-    char path[MAX_PATH_L+1];
     char method[MAX_METHOD_L+1];
+    char path[MAX_PATH_L+1];
+    char version[MAX_VERS_L+1];
     struct content content;
 } request;
 
@@ -38,7 +38,7 @@ typedef struct response {
 
 const char* get_phrase(int status);
 
-int deserialize_request(char* text, size_t len, struct request* req);
+int deserialize_request(char* text, struct request* req);
 
 int serialize_response(struct response* res, char* text, size_t len);
 
@@ -46,8 +46,8 @@ int add_status_line_res(struct response* res, const char* version, int status, c
 
 int add_status_line_req(struct request* req, const char* version, const char* path, const char* method);
 
-int add_header(struct response* res, const char* name, const char* value);
+int add_header(struct content* c, const char* name, const char* value);
 
-int add_date(struct response* res);
+int add_date(struct content* c);
 
-int add_body(struct response* res, void* body, size_t body_len);
+int add_body(struct content* c, void* body, size_t body_len);

@@ -139,7 +139,9 @@ int start(int port) {
         printf("====\n");
 
         // Read cycle
-        do {
+        int counter = 1;
+        while (counter == 1) {
+            counter = 0;
             ssize_t bytes = recv(cs, buffer, BUF_SIZE, 0);
             // Recv error
             if (bytes == -1) {
@@ -152,21 +154,32 @@ int start(int port) {
                 printf("Connectoin closed by client\n");
                 break;
             }
+            // Request parse
+            struct request req = {0};
+            char* sep = strstr(buffer, "\r\n\r\n");
+            if (sep != NULL) {
+                *(sep+2) = '\0';
+
+                char* head = buffer;
+                // char* body = sep + 4;
+
+                deserialize_request(head, &req);
+            }
             // Response struct
             struct response res = {0};
 
             char* body = "<h1>Привет Мир!</h1>";
             add_status_line_res(&res, "HTTP/1.1", 200, get_phrase(200));
-            add_header(&res, "Content-Type", "text/html; charset=utf-8");
-            add_header(&res, "Connection", "close");
-            add_date(&res);
-            add_body(&res, body, strlen(body));
+            add_header(&res.content, "Content-Type", "text/html; charset=utf-8");
+            add_header(&res.content, "Connection", "close");
+            add_date(&res.content);
+            add_body(&res.content, body, strlen(body));
     
             serialize_response(&res, buffer, BUF_SIZE);
             // Send
             if (send_all(cs, buffer, strlen(buffer)) == -1)
                 break;     
-        } while(0);
+        } 
 
         try_close(cs);
     }
