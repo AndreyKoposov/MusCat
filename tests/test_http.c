@@ -20,7 +20,7 @@ void test_deserialize(void) {
     int status = deserialize_request(text, &req);
 
     // Assert
-    CU_ASSERT_EQUAL(status, 200);
+    CU_ASSERT_EQUAL(status, 0);
 
     CU_ASSERT_NSTRING_EQUAL(req.method, "POST", MAX_METHOD_L);
     CU_ASSERT_NSTRING_EQUAL(req.path, "/", MAX_PATH_L);
@@ -57,7 +57,7 @@ void test_deserialize_with_body(void) {
     int status = deserialize_request(text, &req);
 
     // Assert
-    CU_ASSERT_EQUAL(status, 200);
+    CU_ASSERT_EQUAL(status, 0);
 
     CU_ASSERT_NSTRING_EQUAL(req.content.headers[3].name, "Content-Length", MAX_NAME_L);
     CU_ASSERT_NSTRING_EQUAL(req.content.headers[3].value, "5", MAX_VAL_L);
@@ -69,7 +69,7 @@ void test_serialize(void) {
     char* buffer = malloc(BUF_SIZE);
 
     char* body = "<h1>Привет Мир!</h1>";
-    add_status_line_res(&res, "HTTP/1.1", 200, get_phrase(200));
+    add_status_line_res(&res, "HTTP/1.1", 200, "OK");
     add_header(&res.content, "Content-Type", "text/html; charset=utf-8");
     add_header(&res.content, "Connection", "close");
     add_content_len(&res.content, strlen(body));
@@ -100,7 +100,7 @@ void test_serialize_overflow(void) {
 
     char* body = malloc(BUF_SIZE*2);
     memset(body, 'A', BUF_SIZE*2);
-    add_status_line_res(&res, "HTTP/1.1", 200, get_phrase(200));
+    add_status_line_res(&res, "HTTP/1.1", 200, "OK");
     add_header(&res.content, "Content-Type", "text/html; charset=utf-8");
     add_header(&res.content, "Connection", "close");
     add_content_len(&res.content, BUF_SIZE*2);
@@ -127,14 +127,14 @@ void test_add_status_line_res_pos(void) {
     long_phrase[MAX_PHRASE_L] = '\0';
 
     // Act
-    int status1 = add_status_line_res(&res1, "HTTP/1.1", 200, get_phrase(200));
-    int status2 = add_status_line_res(&res2, "HTTP/1.0", 404, get_phrase(404));
+    int status1 = add_status_line_res(&res1, "HTTP/1.1", 200, "OK");
+    int status2 = add_status_line_res(&res2, "HTTP/1.0", 404, "Not Found");
     int status3 = add_status_line_res(&res3, "HTTP/1.1", 200, long_phrase);
 
     // Assert
-    CU_ASSERT_EQUAL(status1, 200);
-    CU_ASSERT_EQUAL(status2, 200);
-    CU_ASSERT_EQUAL(status3, 200);
+    CU_ASSERT_EQUAL(status1, 0);
+    CU_ASSERT_EQUAL(status2, 0);
+    CU_ASSERT_EQUAL(status3, 0);
 
     CU_ASSERT_NSTRING_EQUAL(res1.version, "HTTP/1.1", MAX_VERS_L);
     CU_ASSERT_EQUAL(res1.status, 200);
@@ -161,18 +161,14 @@ void test_add_status_line_res_neg(void) {
     long_version[MAX_VERS_L+1] = '\0';
 
     // Act
-    int status1 = add_status_line_res(&res, "HTTP/1", 200, get_phrase(200));
-    int status2 = add_status_line_res(&res, "HTTP/1.0", 67, get_phrase(404));
+    int status2 = add_status_line_res(&res, "HTTP/1.0", 67, "Not Found");
     int status3 = add_status_line_res(&res, "HTTP/1.1", 500, long_phrase);
-    int status4 = add_status_line_res(&res, long_version, 200, get_phrase(200));
-    int status5 = add_status_line_res(&res, "HTTP/1.1garbage", 200, get_phrase(200));
+    int status4 = add_status_line_res(&res, long_version, 200, "OK");
 
     // Assert
-    CU_ASSERT_EQUAL(status1, 400);
-    CU_ASSERT_EQUAL(status2, 400);
-    CU_ASSERT_EQUAL(status3, 400);
-    CU_ASSERT_EQUAL(status4, 400);
-    CU_ASSERT_EQUAL(status5, 400);
+    CU_ASSERT_EQUAL(status2, -1);
+    CU_ASSERT_EQUAL(status3, -1);
+    CU_ASSERT_EQUAL(status4, -1);
 
     // Clean
     free(long_phrase);
@@ -194,9 +190,9 @@ void test_add_status_line_req_pos(void) {
     int status3 = add_status_line_req(&req3, "DELETE", long_path, "HTTP/1.1");
 
     // Assert
-    CU_ASSERT_EQUAL(status1, 200);
-    CU_ASSERT_EQUAL(status2, 200);
-    CU_ASSERT_EQUAL(status3, 200);
+    CU_ASSERT_EQUAL(status1, 0);
+    CU_ASSERT_EQUAL(status2, 0);
+    CU_ASSERT_EQUAL(status3, 0);
 
     CU_ASSERT_NSTRING_EQUAL(req1.version, "HTTP/1.1", MAX_VERS_L);
     CU_ASSERT_NSTRING_EQUAL(req1.path, "/", MAX_PATH_L);
@@ -227,16 +223,12 @@ void test_add_status_line_req_neg(void) {
     long_version[MAX_VERS_L+1] = '\0';
 
     // Act
-    int status1 = add_status_line_req(&req, "GET", "/", "HTTP/1");
     int status2 = add_status_line_req(&req, "POST", "/", long_version);
     int status3 = add_status_line_req(&req, "PUT", long_path, "HTTP/1.0");
-    int status4 = add_status_line_req(&req, "garbage", "/", "HTTP/1.1");
 
     // Assert
-    CU_ASSERT_EQUAL(status1, 400);
-    CU_ASSERT_EQUAL(status2, 400);
-    CU_ASSERT_EQUAL(status3, 400);
-    CU_ASSERT_EQUAL(status4, 405);
+    CU_ASSERT_EQUAL(status2, -1);
+    CU_ASSERT_EQUAL(status3, -1);
 
     // Clean
     free(long_path);

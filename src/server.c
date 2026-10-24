@@ -162,22 +162,19 @@ int start(int port) {
         struct request req = {0};
         char* head;
         char* body;
-        int status = 200;
         if (sep != NULL) {
             *(sep+2) = '\0';
 
             head = buffer;
             body = sep + 4;
 
-            status = deserialize_request(head, &req);
+            deserialize_request(head, &req);
         }
-        else
-            status = 400;
         // Response
         struct response res = {0};
         if (body == NULL)
             body = "<h1>Ошибка в теле!</h1>";
-        add_status_line_res(&res, "HTTP/1.1", status, get_phrase(status));
+        add_status_line_res(&res, "HTTP/1.1", 200, "OK");
         add_header(&res.content, "Content-Type", "text/html; charset=utf-8");
         add_header(&res.content, "Connection", "close");
         add_date(&res.content);
