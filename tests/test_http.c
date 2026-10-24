@@ -42,6 +42,27 @@ void test_deserialize(void) {
     CU_ASSERT_NSTRING_EQUAL(req.content.headers[4].value, "application/x-www-form-urlencoded", MAX_VAL_L);
 }
 
+void test_deserialize_with_body(void) {
+    // Arrange
+    struct request req = {0};
+    char text[BUF_SIZE] = "POST / HTTP/1.1\r\nHost: 127.0.0.1:8888\r\n"
+                          "User-Agent: curl/8.5.0\r\n"
+                          "Accept: */*\r\n"
+                          "Content-Length: 5\r\n"
+                          "Content-Type: application/x-www-form-urlencoded\r\n"
+                          "\r\n"
+                          "Hello";
+
+    // Act
+    int status = deserialize_request(text, &req);
+
+    // Assert
+    CU_ASSERT_EQUAL(status, 200);
+
+    CU_ASSERT_NSTRING_EQUAL(req.content.headers[3].name, "Content-Length", MAX_NAME_L);
+    CU_ASSERT_NSTRING_EQUAL(req.content.headers[3].value, "5", MAX_VAL_L);
+}
+
 void test_serialize(void) {
     // Arrange
     struct response res = {0};

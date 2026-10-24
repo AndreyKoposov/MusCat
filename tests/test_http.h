@@ -1,5 +1,7 @@
 void test_deserialize(void);
 
+void test_deserialize_with_body(void);
+
 void test_serialize(void);
 
 void test_serialize_overflow(void);
