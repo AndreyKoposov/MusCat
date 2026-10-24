@@ -3,7 +3,7 @@
 #include <locale.h>
 
 #include "server.h"
-#include "args_parse.h"
+#include "utils.h"
 
 
 int main(int argc, char** argv) {
