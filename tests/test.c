@@ -23,10 +23,13 @@ int main() {
   // success = CU_add_test(serverS, "Test ping", test_server_ping);
   // success = CU_add_test(serverS, "Test many connections", test_server_many_conn);
 
+  success = CU_add_test(httpS, "Test deserialize", test_deserialize);
   success = CU_add_test(httpS, "Test serialize", test_serialize);
   success = CU_add_test(httpS, "Test serialize overflow", test_serialize_overflow);
-  success = CU_add_test(httpS, "Test add status line", test_add_status_line_res_pos);
-  success = CU_add_test(httpS, "Test add status line negative", test_add_status_line_res_neg);
+  success = CU_add_test(httpS, "Test add status response line", test_add_status_line_res_pos);
+  success = CU_add_test(httpS, "Test add status response line negative", test_add_status_line_res_neg);
+  success = CU_add_test(httpS, "Test add status request line", test_add_status_line_req_pos);
+  success = CU_add_test(httpS, "Test add status request line negative", test_add_status_line_req_neg);
   if (success == NULL) {
     CU_cleanup_registry();
     return CU_get_error();

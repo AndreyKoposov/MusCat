@@ -44,7 +44,7 @@ int serialize_response(struct response* res, char* text, size_t len);
 
 int add_status_line_res(struct response* res, const char* version, int status, const char* phrase);
 
-int add_status_line_req(struct request* req, const char* version, const char* path, const char* method);
+int add_status_line_req(struct request* req, const char* method, const char* path, const char* version);
 
 int add_header(struct content* c, const char* name, const char* value);
 

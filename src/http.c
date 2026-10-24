@@ -180,6 +180,8 @@ int add_content_len(struct content* c, size_t len) {
 }
 
 int add_body(struct content* c, void* body) {
+    if (c->body_len == 0) return 400;
+
     c->body = body;
 
     return 200;
@@ -187,6 +189,7 @@ int add_body(struct content* c, void* body) {
 
 int deserialize_header(char* h, struct request* req) {
     char* sep = strstr(h, ": ");
+    if (sep == NULL) return 400;
     *sep = '\0';
     char* pointer = sep + 2;
 
@@ -204,6 +207,7 @@ int deserialize_request(char* text, struct request* req) {
     // Status line
     int status = 200;
     char* sep = strstr(text, "\r\n");
+    if (sep == NULL) return 400;
     *sep = '\0';
     char* pointer = sep + 2;
 
@@ -214,9 +218,11 @@ int deserialize_request(char* text, struct request* req) {
         return status;
 
     // Headers
-    while (strlen(pointer) > 0) {
+    while (1) {
         sep = strstr(pointer, "\r\n");
         *sep = '\0';
+        if (strlen(pointer) == 0) 
+            break;
         if ((status = deserialize_header(pointer, req)) != 200)
             return status;
         pointer = sep + 2;
