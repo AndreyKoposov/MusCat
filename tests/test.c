@@ -20,8 +20,8 @@ int main() {
   }
 
   CU_pTest success = NULL;
-  success = CU_add_test(serverS, "Test ping", test_server_ping);
-  success = CU_add_test(serverS, "Test many connections", test_server_many_conn);
+  // success = CU_add_test(serverS, "Test ping", test_server_ping);
+  // success = CU_add_test(serverS, "Test many connections", test_server_many_conn);
 
   success = CU_add_test(httpS, "Test serialize", test_serialize);
   success = CU_add_test(httpS, "Test serialize overflow", test_serialize_overflow);

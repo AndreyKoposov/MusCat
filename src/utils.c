@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <ctype.h>
 
 
 int parse(int argc, char** argv) {
@@ -21,4 +22,11 @@ int int_to_str(int n, char* text, int maxlen) {
     if (k < 0 || k >= maxlen) 
         return -1;
     return 0;
+}
+
+void strlwr(char* str) {
+    while (*str) {
+        *str = tolower(*str);
+        str++;
+    }
 }

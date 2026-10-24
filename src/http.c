@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <ctype.h>
 
 #include "http.h"
 #include "utils.h"
@@ -45,6 +46,48 @@ int validate_phrase(const char* phrase) {
         return 200;
 }
 
+int validate_method(const char* method) {
+    if (strlen(method) > MAX_METHOD_L) 
+        return 400;
+    if (strcmp(method, "GET") == 0)
+        return 200;
+    else
+    if (strcmp(method, "POST") == 0)
+        return 200;
+    else
+    if (strcmp(method, "DELETE") == 0)
+        return 200;
+    else
+    if (strcmp(method, "PUT") == 0)
+        return 200;
+    else
+        return 405;
+}
+
+int validate_header(const char* name, const char* value) {
+    char copy[MAX_NAME_L+1];
+    strcpy(copy, name);
+    strlwr(copy);
+
+    if (strlen(copy) > MAX_NAME_L || strlen(value) > MAX_VAL_L) 
+        return 400;
+    if (strcmp(copy, "connection") == 0) return 200; else
+    if (strcmp(copy, "date") == 0) return 200; else
+    if (strcmp(copy, "content-length") == 0) return 200; else
+    if (strcmp(copy, "content-type") == 0) return 200; else
+    if (strcmp(copy, "host") == 0) return 200; else
+    if (strcmp(copy, "user-agent") == 0) return 200; else
+    if (strcmp(copy, "accept") == 0) return 200; else
+        return 400;
+}
+
+int validate_path(const char* path) {
+    if (strlen(path) > MAX_PATH_L) 
+        return 400;
+    else
+        return 200;
+}
+
 int serialize_response(struct response* res, char* text, size_t maxlen) {
     // Status line
     int total = snprintf(text, maxlen, "%s %d %s\r\n", res->version, res->status, res->phrase);
@@ -75,9 +118,10 @@ int serialize_response(struct response* res, char* text, size_t maxlen) {
 }
 
 int add_status_line_res(struct response* res, const char* version, int status, const char* phrase) {
-    if (validate_version(version) != 200) return 400;
-    if (validate_status(status) != 200) return 400;
-    if (validate_phrase(phrase) != 200) return 400;
+    int code = 0;
+    if ((code = validate_version(version)) != 200) return code;
+    if ((code = validate_status(status)) != 200) return code;
+    if ((code = validate_phrase(phrase)) != 200) return code;
 
     strcpy(res->version, version);
     res->status = status;
@@ -87,9 +131,10 @@ int add_status_line_res(struct response* res, const char* version, int status, c
 }
 
 int add_status_line_req(struct request* req, const char* method, const char* path, const char* version) {
-    // if (validate_version(version) != 200) return 400;
-    // if (validate_status(status) != 200) return 400;
-    if (validate_version(version) != 200) return 400;
+    int code = 0;
+    if ((code = validate_method(method)) != 200) return code;
+    if ((code = validate_path(path)) != 200) return code;
+    if ((code = validate_version(version)) != 200) return code;
 
     strcpy(req->method, method);
     strcpy(req->path, path);
@@ -99,8 +144,8 @@ int add_status_line_req(struct request* req, const char* method, const char* pat
 }
 
 int add_header(struct content* c, const char* name, const char* value) {
-    if (strlen(name) > MAX_NAME_L) return 400;
-    if (strlen(value) > MAX_VAL_L) return 400;
+    int code = 0;
+    if ((code = validate_header(name, value)) != 200) return code;
 
     struct header header = {0};
     strcpy(header.name, name);
@@ -156,6 +201,7 @@ int deserialize_header(char* h, struct request* req) {
 }
 
 int deserialize_request(char* text, struct request* req) {
+    // Status line
     int status = 200;
     char* sep = strstr(text, "\r\n");
     *sep = '\0';
@@ -167,6 +213,7 @@ int deserialize_request(char* text, struct request* req) {
     if ((status = add_status_line_req(req, method, path, version)) != 200)
         return status;
 
+    // Headers
     while (strlen(pointer) > 0) {
         sep = strstr(pointer, "\r\n");
         *sep = '\0';
