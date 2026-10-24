@@ -172,8 +172,8 @@ int add_date(struct content* c) {
 }
 
 int add_content_len(struct content* c, size_t len) {
-    char len_str[21];
-    int_to_str(len, len_str, 21);
+    char len_str[MAX_NUM_LEN];
+    int_to_str(len, len_str);
     c->body_len = len;
 
     return add_header(c, "Content-Length", len_str);
@@ -197,7 +197,9 @@ int deserialize_header(char* h, struct request* req) {
     char* value = pointer;
 
     if (strcmp(name, "Content-Length") == 0) {
-        return add_content_len(&req->content, str_to_int(value));
+        long num = 0;
+        if (str_to_int(value, &num) == -1) return 400;
+        return add_content_len(&req->content, num);
     }
 
     return add_header(&req->content, name, value);
@@ -205,6 +207,7 @@ int deserialize_header(char* h, struct request* req) {
 
 int deserialize_request(char* text, struct request* req) {
     // Status line
+    char* end = strstr(text, "\r\n\r\n") + 4;
     int status = 200;
     char* sep = strstr(text, "\r\n");
     if (sep == NULL) return 400;
@@ -218,11 +221,9 @@ int deserialize_request(char* text, struct request* req) {
         return status;
 
     // Headers
-    while (1) {
+    while (pointer+2 < end) {
         sep = strstr(pointer, "\r\n");
         *sep = '\0';
-        if (strlen(pointer) == 0) 
-            break;
         if ((status = deserialize_header(pointer, req)) != 200)
             return status;
         pointer = sep + 2;

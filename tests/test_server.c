@@ -87,7 +87,12 @@ void test_server_many_conn(void) {
             return;
         }
 
-        char* msg = "test";
+        char* msg = "POST / HTTP/1.1\r\nHost: 127.0.0.1:8888\r\n"
+                    "User-Agent: curl/8.5.0\r\n"
+                    "Accept: */*\r\n"
+                    "Content-Length: 0\r\n"
+                    "Content-Type: application/x-www-form-urlencoded\r\n"
+                    "\r\n";
         size_t size = strlen(msg);
 
         CU_ASSERT_EQUAL(send_all(s, msg, size), 0);
@@ -163,7 +168,12 @@ void test_server_ping(void) {
         return;
     }
 
-    char* msg = "test";
+    char* msg = "POST / HTTP/1.1\r\nHost: 127.0.0.1:8888\r\n"
+                "User-Agent: curl/8.5.0\r\n"
+                "Accept: */*\r\n"
+                "Content-Length: 0\r\n"
+                "Content-Type: application/x-www-form-urlencoded\r\n"
+                "\r\n";
     size_t size = strlen(msg);
 
     CU_ASSERT_EQUAL(send_all(s, msg, size), 0);
