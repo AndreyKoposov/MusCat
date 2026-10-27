@@ -50,7 +50,7 @@ int start(int port) {
         return -1;
     }
     // Setup SIGPIPE ignore
-    if (signal(SIGPIPE, SIG_IGN) < 0) {
+    if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) {
         perror("SIGPIPE ignore setup error");
         return -1;
     }
@@ -63,6 +63,12 @@ int start(int port) {
     int ss = socket(AF_INET, SOCK_STREAM, 0);
     if (ss < 0) {
         perror("Socket error");
+        return -1;
+    }
+    // Socket reuse address
+    int opt = 1;
+    if (setsockopt(ss, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+        perror("Reuse address error");
         return -1;
     }
     // Socket bind
