@@ -41,13 +41,17 @@ void sigint_handler(int sig) {
 }
 
 int start(int port) {
-    printf("Server started...\n");
     // Setup SIGINT handler
     struct sigaction sa = {0};
     sa.sa_handler = sigint_handler;
     sigemptyset(&sa.sa_mask); // Block additional signals during handler execution
     if (sigaction(SIGINT, &sa, NULL) < 0) {
         perror("SIGINT handler setup error");
+        return -1;
+    }
+    // Setup SIGPIPE ignore
+    if (signal(SIGPIPE, SIG_IGN) < 0) {
+        perror("SIGPIPE ignore setup error");
         return -1;
     }
     // Socket address
@@ -80,6 +84,7 @@ int start(int port) {
         return -1;
     }
     // Main cycle
+    printf("Server started...\n");
     int counter = 0;
     while (break_flag) {
         printf("Waiting for new connections...\n");
