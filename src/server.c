@@ -1,6 +1,9 @@
+#define _POSIX_C_SOURCE 199309L
+
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #include <signal.h>
 #include <sys/socket.h>
@@ -12,9 +15,9 @@
 #define BUF_SIZE 4096
 
 
-volatile sig_atomic_t break_flag;
+volatile sig_atomic_t break_flag = 1;
 
-int send_all(int fd, char* buf, size_t data_len) {
+int send_all(int fd, char* buf, ssize_t data_len) {
     ssize_t total = 0;
     while (total < data_len) {
         ssize_t bytes = send(fd, buf+total, data_len-total, 0);
@@ -28,9 +31,25 @@ int send_all(int fd, char* buf, size_t data_len) {
 void try_close(int fd) {
     if (close(fd) < 0)
         perror("Socket close error");
+    else
+        printf("Socket <%d> closed\n", fd);
+}
+
+void sigint_handler(int sig) {
+    (void)sig;
+    break_flag = 0;
 }
 
 int start(int port) {
+    printf("Server started...\n");
+    // Setup SIGINT handler
+    struct sigaction sa = {0};
+    sa.sa_handler = sigint_handler;
+    sigemptyset(&sa.sa_mask); // Block additional signals during handler execution
+    if (sigaction(SIGINT, &sa, NULL) < 0) {
+        perror("SIGINT handler setup error");
+        return -1;
+    }
     // Socket address
     struct sockaddr_in s_addr = {0};
     s_addr.sin_family = AF_INET;
@@ -43,7 +62,7 @@ int start(int port) {
         return -1;
     }
     // Socket bind
-    if(bind(ss, (struct sockaddr*)&s_addr, sizeof(s_addr)) < 0) {
+    if(bind(ss, (struct sockaddr*)&s_addr, (socklen_t)sizeof(s_addr)) < 0) {
         perror("Bind error");
         try_close(ss);
         return -1;
@@ -54,14 +73,24 @@ int start(int port) {
         try_close(ss);
         return -1;
     }
+    // Buffer init
+    char* buffer = malloc(BUF_SIZE);
+    if (buffer == NULL) {
+        perror("Memory allocation error");
+        return -1;
+    }
     // Main cycle
     int counter = 0;
     while (break_flag) {
+        printf("Waiting for new connections...\n");
+        // Client address
         struct sockaddr_in c_addr = {0};
+        socklen_t c_sock_len = sizeof(c_addr);
         // Accept new connection
-        int cs = accept(ss, (struct sockaddr*)&c_addr, sizeof(c_addr));
+        int cs = accept(ss, (struct sockaddr*)&c_addr, (socklen_t*)&c_sock_len);
         if (cs < 0) {
-            perror("Accept error");
+            if (errno != EINTR)
+                perror("Accept error");
             continue;
         }
         counter++;
@@ -70,22 +99,18 @@ int start(int port) {
         int c_port = ntohs(c_addr.sin_port);
         inet_ntop(AF_INET, &c_addr.sin_addr, ip_addr, sizeof(c_addr));
         printf("\n====\nNew connection #%d\nHost: %s:%d\n====\n", counter, ip_addr, c_port);
-        // Buffer init
-        char* buffer = malloc(BUF_SIZE);
-        if (buffer == NULL) {
-            perror("Memory allocation error");
-            return -1;
-        }
         // Recv cycle
         while (break_flag) {
             ssize_t bytes = recv(cs, buffer, BUF_SIZE, 0);
             // Recv error
             if (bytes < 0) {
-                perror("Recv error");
+                if (errno != EINTR)
+                    perror("Recv error");
                 break;
             }
             // Connection closed
             if (bytes == 0) {
+                printf("Connection closed by client\n");
                 break;
             }
             // Send all data
@@ -94,13 +119,13 @@ int start(int port) {
                 break;
             }
         }
-
-        free(buffer);
-
         try_close(cs);
     }
 
+    free(buffer);
+
     try_close(ss);
 
+    printf("Shut down...");
     return 0;
 }
