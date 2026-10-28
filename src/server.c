@@ -4,6 +4,8 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <sys/time.h>
+
 #include <pthread.h>
 #include <stdatomic.h>
 
@@ -18,6 +20,7 @@
 #define IP_ADDR_S 32
 #define BUF_SIZE 4096
 #define MAX_THREADS 8
+#define RECV_TIMEOUT 1
 
 
 volatile sig_atomic_t break_flag = 1;
@@ -44,7 +47,8 @@ void try_close(int fd) {
         printf("Socket <%d> closed\n", fd);
 }
 
-void* work() {
+void* work(void* args) {
+    (void)args;
     int cs = -1;
     // Buffer init
     char* buffer = malloc(BUF_SIZE);
@@ -56,14 +60,18 @@ void* work() {
         pthread_mutex_lock(&lock);
         while (jobs.size == 0 && !stopping) 
             pthread_cond_wait(&not_empty, &lock);
-        if (!stopping && jobs.size > 0)
+        if (!stopping && jobs.size > 0) {
             cs = queue_get(&jobs);
+            printf("Thread[%lu] : got job <%d>\n", pthread_self(), cs);
+        }
         pthread_mutex_unlock(&lock);
         // Recv cycle
         while (!stopping) {
             ssize_t bytes = recv(cs, buffer, BUF_SIZE, 0);
             // Recv error
             if (bytes < 0) {
+                if (errno == EAGAIN)
+                    continue;
                 if (errno != EINTR)
                     perror("Recv error");
                 break;
@@ -79,7 +87,9 @@ void* work() {
                 break;
             }
         }
-        try_close(cs);
+        if (cs != -1)
+            try_close(cs);
+        cs = -1;
     }
     free(buffer);
 
@@ -92,11 +102,6 @@ void sigint_handler(int sig) {
 }
 
 int start(int port) {
-    // Threads
-    pthread_mutex_init(&lock, NULL);
-    pthread_t workers[MAX_THREADS];
-    for (int i = 0; i < MAX_THREADS; i++) 
-        pthread_create(&workers[i], NULL, &work, NULL);
     // Setup SIGINT handler
     struct sigaction sa = {0};
     sa.sa_handler = sigint_handler;
@@ -139,6 +144,12 @@ int start(int port) {
         try_close(ss);
         return -1;
     }
+    // Threads
+    pthread_mutex_init(&lock, NULL);
+    pthread_cond_init(&not_empty, NULL);
+    pthread_t workers[MAX_THREADS];
+    for (int i = 0; i < MAX_THREADS; i++) 
+        pthread_create(&workers[i], NULL, &work, NULL);
     // Main cycle
     printf("Server started...\n");
     int counter = 0;
@@ -155,10 +166,17 @@ int start(int port) {
             continue;
         }
         counter++;
+        // Recv timeout setup
+        struct timeval timeout = {0};
+        timeout.tv_sec = RECV_TIMEOUT;
+        if (setsockopt(cs, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout))) {
+            perror("Recv timeout error");
+            continue;
+        }
         // Log client socket info
         char ip_addr[IP_ADDR_S];
         int c_port = ntohs(c_addr.sin_port);
-        inet_ntop(AF_INET, &c_addr.sin_addr, ip_addr, sizeof(c_addr));
+        inet_ntop(AF_INET, &c_addr.sin_addr, ip_addr, sizeof(ip_addr));
         printf("\n====\nNew connection #%d\nHost: %s:%d\n====\n", counter, ip_addr, c_port);
         // Create job
         pthread_mutex_lock(&lock);
@@ -169,16 +187,17 @@ int start(int port) {
     // Stop threads
     pthread_mutex_lock(&lock);
     stopping = 1;
-    pthread_mutex_unlock(&lock);
     pthread_cond_broadcast(&not_empty);
+    pthread_mutex_unlock(&lock);
     // Wait threads
     for (int i = 0; i < MAX_THREADS; i++)
         pthread_join(workers[i], NULL);
 
     pthread_mutex_destroy(&lock);
+    pthread_cond_destroy(&not_empty);
 
     try_close(ss);
 
-    printf("Shut down...");
+    printf("Shut down...\n");
     return 0;
 }
