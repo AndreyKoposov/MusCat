@@ -5,11 +5,14 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <pthread.h>
+#include <stdatomic.h>
 
 #include <signal.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+
+#include "queue.h"
 
 #define BACKLOG 128
 #define IP_ADDR_S 32
@@ -18,7 +21,10 @@
 
 
 volatile sig_atomic_t break_flag = 1;
+struct queue jobs = {0};
 pthread_mutex_t lock;
+pthread_cond_t not_empty;
+atomic_bool stopping = 0;
 
 int send_all(int fd, char* buf, ssize_t data_len) {
     ssize_t total = 0;
@@ -38,36 +44,44 @@ void try_close(int fd) {
         printf("Socket <%d> closed\n", fd);
 }
 
-void* work(void* args) {
-    int cs = *(int*)args;
+void* work() {
+    int cs = -1;
     // Buffer init
     char* buffer = malloc(BUF_SIZE);
     if (buffer == NULL) {
         perror("Memory allocation error");
         return NULL;
     }
-    // Recv cycle
-    while (break_flag) {
-        ssize_t bytes = recv(cs, buffer, BUF_SIZE, 0);
-        // Recv error
-        if (bytes < 0) {
-            if (errno != EINTR)
-                perror("Recv error");
-            break;
+    while (!stopping) {
+        pthread_mutex_lock(&lock);
+        while (jobs.size == 0 && !stopping) 
+            pthread_cond_wait(&not_empty, &lock);
+        if (!stopping && jobs.size > 0)
+            cs = queue_get(&jobs);
+        pthread_mutex_unlock(&lock);
+        // Recv cycle
+        while (!stopping) {
+            ssize_t bytes = recv(cs, buffer, BUF_SIZE, 0);
+            // Recv error
+            if (bytes < 0) {
+                if (errno != EINTR)
+                    perror("Recv error");
+                break;
+            }
+            // Connection closed
+            if (bytes == 0) {
+                printf("Connection closed by client\n");
+                break;
+            }
+            // Send all data
+            if (send_all(cs, buffer, bytes) < 0) {
+                perror("Send error");
+                break;
+            }
         }
-        // Connection closed
-        if (bytes == 0) {
-            printf("Connection closed by client\n");
-            break;
-        }
-        // Send all data
-        if (send_all(cs, buffer, bytes) < 0) {
-            perror("Send error");
-            break;
-        }
+        try_close(cs);
     }
     free(buffer);
-    try_close(cs);
 
     return NULL;
 }
@@ -79,10 +93,10 @@ void sigint_handler(int sig) {
 
 int start(int port) {
     // Threads
-    // pthread_mutex_init(&lock, NULL);
-    // pthread_t workers[MAX_THREADS];
-    // for (int i = 0; i < MAX_THREADS; i++) 
-    //     pthread_create(workers[i], NULL, &work, NULL);
+    pthread_mutex_init(&lock, NULL);
+    pthread_t workers[MAX_THREADS];
+    for (int i = 0; i < MAX_THREADS; i++) 
+        pthread_create(&workers[i], NULL, &work, NULL);
     // Setup SIGINT handler
     struct sigaction sa = {0};
     sa.sa_handler = sigint_handler;
@@ -146,10 +160,22 @@ int start(int port) {
         int c_port = ntohs(c_addr.sin_port);
         inet_ntop(AF_INET, &c_addr.sin_addr, ip_addr, sizeof(c_addr));
         printf("\n====\nNew connection #%d\nHost: %s:%d\n====\n", counter, ip_addr, c_port);
+        // Create job
+        pthread_mutex_lock(&lock);
+        queue_add(&jobs, cs);
+        pthread_cond_signal(&not_empty);
+        pthread_mutex_unlock(&lock);
     }
+    // Stop threads
+    pthread_mutex_lock(&lock);
+    stopping = 1;
+    pthread_mutex_unlock(&lock);
+    pthread_cond_broadcast(&not_empty);
+    // Wait threads
+    for (int i = 0; i < MAX_THREADS; i++)
+        pthread_join(workers[i], NULL);
 
-    // for (int i = 0; i < MAX_THREADS; i++)
-    //     pthread_join(workers[i], NULL);
+    pthread_mutex_destroy(&lock);
 
     try_close(ss);
 
