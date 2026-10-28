@@ -160,13 +160,13 @@ int start(int port) {
     pthread_t workers[MAX_THREADS];
     for (int i = 0; i < MAX_THREADS; i++) 
         pthread_create(&workers[i], NULL, &work, NULL);
+    // Client address
+    struct sockaddr_in c_addr = {0};
+    socklen_t c_sock_len = sizeof(c_addr);
     // Main cycle
     printf("Server started...\n");
     int counter = 0;
     while (break_flag) {
-        // Client address
-        struct sockaddr_in c_addr = {0};
-        socklen_t c_sock_len = sizeof(c_addr);
         // Accept new connection
         int cs = accept(ss, (struct sockaddr*)&c_addr, (socklen_t*)&c_sock_len);
         if (cs < 0) {
