@@ -20,7 +20,8 @@ TEST_SRC := $(TEST_DIR)/test.c
 TEST_OBJ := $(BUILD_DIR)/test.o
 TEST     := $(BUILD_DIR)/test
 
-TEST_LIBS := -lcunit
+APP_LIBS  := -lpthread
+TEST_LIBS := -lcunit -lpthread
 
 .PHONY: all lib app test clean run
 
@@ -40,7 +41,7 @@ $(LIB): $(LIB_OBJ)
 # --- App ---
 app: $(APP)
 $(APP): $(APP_OBJ) $(LIB)
-	$(CC) $^ -o $@
+	$(CC) $^ $(APP_LIBS) -o $@
 
 # --- Tests ---
 test: $(TEST)
