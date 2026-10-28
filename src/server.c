@@ -21,6 +21,7 @@
 #define BUF_SIZE 4096
 #define MAX_THREADS 8
 #define RECV_TIMEOUT 1
+#define ACCEPT_TIMEOUT 1
 
 
 volatile sig_atomic_t break_flag = 1;
@@ -130,6 +131,15 @@ int start(int port) {
     int opt = 1;
     if (setsockopt(ss, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
         perror("Reuse address error");
+        try_close(ss);
+        return -1;
+    }
+    // Recv timeout setup
+    struct timeval timeout = {0};
+    timeout.tv_sec = ACCEPT_TIMEOUT;
+    if (setsockopt(ss, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout))) {
+        perror("Accept timeout error");
+        try_close(ss);
         return -1;
     }
     // Socket bind
@@ -154,22 +164,23 @@ int start(int port) {
     printf("Server started...\n");
     int counter = 0;
     while (break_flag) {
-        printf("Waiting for new connections...\n");
         // Client address
         struct sockaddr_in c_addr = {0};
         socklen_t c_sock_len = sizeof(c_addr);
         // Accept new connection
         int cs = accept(ss, (struct sockaddr*)&c_addr, (socklen_t*)&c_sock_len);
         if (cs < 0) {
+            if (errno == EAGAIN)
+                continue;
             if (errno != EINTR)
                 perror("Accept error");
             continue;
         }
         counter++;
         // Recv timeout setup
-        struct timeval timeout = {0};
-        timeout.tv_sec = RECV_TIMEOUT;
-        if (setsockopt(cs, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout))) {
+        struct timeval c_timeout = {0};
+        c_timeout.tv_sec = RECV_TIMEOUT;
+        if (setsockopt(cs, SOL_SOCKET, SO_RCVTIMEO, &c_timeout, sizeof(c_timeout))) {
             perror("Recv timeout error");
             continue;
         }
