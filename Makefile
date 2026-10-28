@@ -3,6 +3,7 @@ CFLAGS   := -Wall -Wextra -pedantic -std=c17 -g -O0 -Iinclude
 CFLAGS_T := -Wall -Wextra -pedantic -std=c17 -g -O0 -Iinclude -Itests
 AR       := ar
 ARFLAGS  := rcs
+VALFLAGS := --leak-check=full
 
 SRC_DIR   := src
 TEST_DIR  := tests
@@ -45,7 +46,7 @@ $(APP): $(APP_OBJ) $(LIB)
 
 # --- Tests ---
 test: $(TEST)
-	./$(TEST)
+	valgrind $(VALFLAGS) ./$(TEST)
 $(TEST): $(TEST_OBJ) $(LIB)
 	$(CC) $^ $(TEST_LIBS) -o $@
 
