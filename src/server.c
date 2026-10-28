@@ -31,13 +31,20 @@ int send_all(int fd, char* buf, ssize_t data_len) {
     return 0;
 }
 
+void try_close(int fd) {
+    if (close(fd) < 0)
+        perror("Socket close error");
+    else
+        printf("Socket <%d> closed\n", fd);
+}
+
 void* work(void* args) {
     int cs = *(int*)args;
     // Buffer init
     char* buffer = malloc(BUF_SIZE);
     if (buffer == NULL) {
         perror("Memory allocation error");
-        return -1;
+        return NULL;
     }
     // Recv cycle
     while (break_flag) {
@@ -65,13 +72,6 @@ void* work(void* args) {
     return NULL;
 }
 
-void try_close(int fd) {
-    if (close(fd) < 0)
-        perror("Socket close error");
-    else
-        printf("Socket <%d> closed\n", fd);
-}
-
 void sigint_handler(int sig) {
     (void)sig;
     break_flag = 0;
@@ -79,10 +79,10 @@ void sigint_handler(int sig) {
 
 int start(int port) {
     // Threads
-    pthread_mutex_init(&lock, NULL);
-    pthread_t workers[MAX_THREADS];
-    for (int i = 0; i < MAX_THREADS; i++) 
-        pthread_create(workers[i], NULL, &work, NULL);
+    // pthread_mutex_init(&lock, NULL);
+    // pthread_t workers[MAX_THREADS];
+    // for (int i = 0; i < MAX_THREADS; i++) 
+    //     pthread_create(workers[i], NULL, &work, NULL);
     // Setup SIGINT handler
     struct sigaction sa = {0};
     sa.sa_handler = sigint_handler;
@@ -148,8 +148,8 @@ int start(int port) {
         printf("\n====\nNew connection #%d\nHost: %s:%d\n====\n", counter, ip_addr, c_port);
     }
 
-    for (int i = 0; i < MAX_THREADS; i++)
-        pthread_join(workers[i], NULL);
+    // for (int i = 0; i < MAX_THREADS; i++)
+    //     pthread_join(workers[i], NULL);
 
     try_close(ss);
 

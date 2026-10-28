@@ -10,12 +10,6 @@ typedef struct queue {
     struct element* last;
 } queue;
 
-typedef struct element {
-    int value;
-    struct element* next;
-    struct element* prev;
-} element;
-
 void queue_add(struct queue* q, int value);
 int queue_get(struct queue* q);
 

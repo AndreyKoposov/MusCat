@@ -1,22 +1,40 @@
 #include "queue.h"
 
 
+typedef struct element {
+    int value;
+    struct element* next;
+} element;
+
 void queue_add(struct queue* q, int value) {
     struct element* new = malloc(sizeof(struct element));
     new->value = value;
-    struct element* temp = q->last;
-    q->last = new;
-    new->next = temp;
-    temp->prev = new;
+    new->next = NULL;
+
+    if (q->size == 0) {
+        q->first = new;
+    }
+    else if (q->size == 1) {
+        q->last = new;
+        q->first->next = new;
+    }
+    else {
+        struct element* temp = q->last;
+        q->last = new;
+        temp->next = new;
+    }
+   
     q->size++;
 }
 
 int queue_get(struct queue* q) {
-    int value = q->first->value;
     struct element* temp = q->first;
-    q->first = temp->prev;
-    q->first->next = NULL;
+    int value = temp->value;
+
+    q->first = temp->next;
+
     free(temp);
+
     q->size--;
     return value;
 }
