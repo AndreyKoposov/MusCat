@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 #include "http.h"
 
@@ -16,16 +17,27 @@ int add_header(struct content* c, char* name, char* value) {
     int i = c->headers_n;
     if (i >= MAX_HEADERS_N) 
         return -1;
-    c->headers_n++;
 
-    strncpy(c->headers[i].name, name, MAX_NAME_L);
-    strncpy(c->headers[i].value, value, MAX_VAL_L);
+    struct header h = {0};
+    strncpy(h.name, name, MAX_NAME_L);
+    strncpy(h.value, value, MAX_VAL_L);
+
+    c->headers[i] = h;
+    c->headers_n++;
 
     return 0;
 }
 
 int add_date(struct content* c) {
+    time_t current;
+    time(&current);
+    struct tm current_gm = {0};
+    gmtime_r(&current, &current_gm);
 
+    char time_str[MAX_VAL_L+1];
+    strftime(time_str, MAX_VAL_L, "%a, %d %b %Y %H:%M:%S GMT", &current_gm);
+
+    return add_header(c, "Date", time_str);
 }
 
 int add_length(struct content* c, size_t len) {
@@ -40,6 +52,16 @@ int add_length(struct content* c, size_t len) {
 
 int add_body(struct content* c, char* body) {
     c->body = body;
+}
+
+int deserialize_header(struct content* c, char* h) {
+    char* sep = strstr(h, ": ");
+    if (sep == NULL) return -1;
+    sep = '\0';
+    char* name = h;
+    char* value = sep+1;
+
+    return add_header(c, name, value);
 }
 
 int serialize_http_response(struct response* res, char* buf, size_t len) {
@@ -62,5 +84,38 @@ int serialize_http_response(struct response* res, char* buf, size_t len) {
 }
 
 int deserialize_http_request(char* buf, size_t len, struct request* req) {
-    
+    char* str = malloc(len+1);
+    memcpy(str, buf, len);
+    str[len] = '\0';
+    // End of head
+    char* eoh = strstr(str, "\r\n\r\n");
+    if (eoh == NULL) return -1;
+    // Method
+    char* sep1 = strchr(str, ' ');
+    if (sep1 == NULL || sep1[1] == ' ') return -1;
+    sep1 = '\0';
+    char* method = str;
+    // Path
+    char* sep2 = strchr(sep1+1, ' ');
+    if (sep2 == NULL || sep2[1] == ' ') return -1;
+    sep2 = '\0';
+    char* path = sep1+1;
+    // Version
+    char* eol = strstr(sep2+1, "\r\n");
+    if (eol == NULL) return -1;
+    eol = '\0';
+    char* version = sep2+1;
+
+    char* ptr = eol+2;
+    char* sep = NULL;
+    while (ptr < eoh) {
+        sep = strstr(ptr, "\r\n");
+        if (sep == NULL) return -1;
+        sep = '\0';
+        if (deserialize_header(&req->content, ptr) < 0)
+            return -1;
+        ptr += 2;
+    }
+
+    return 0;
 }
