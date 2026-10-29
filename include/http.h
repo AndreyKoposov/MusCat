@@ -38,5 +38,8 @@ typedef struct response {
     struct content content;
 } request;
 
+int serialize_http_response(struct response* res, char* buf, size_t len);
+int deserialize_http_request(char* buf, size_t len, struct request* req);
+
 
 #endif
