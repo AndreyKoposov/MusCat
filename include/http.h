@@ -36,8 +36,9 @@ typedef struct response {
     int code;
     char phrase[MAX_PHRASE_L+1];
     struct content content;
-} request;
+} response;
 
+int add_status_line_response(struct response* res, char* ver, int code, char* phr);
 int add_header(struct content* c, char* name, char* value);
 int add_date(struct content* c);
 int add_length(struct content* c, size_t len);

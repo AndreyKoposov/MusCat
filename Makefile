@@ -9,16 +9,16 @@ SRC_DIR   := src
 TEST_DIR  := tests
 BUILD_DIR := build
 
-LIB_SRC := $(SRC_DIR)/server.c $(SRC_DIR)/queue.c
-LIB_OBJ := $(BUILD_DIR)/server.o $(BUILD_DIR)/queue.o
+LIB_SRC := $(SRC_DIR)/server.c $(SRC_DIR)/queue.c $(SRC_DIR)/http.c
+LIB_OBJ := $(BUILD_DIR)/server.o $(BUILD_DIR)/queue.o $(BUILD_DIR)/http.o
 LIB     := $(BUILD_DIR)/libserver.a
 
 APP_SRC := $(SRC_DIR)/main.c
 APP_OBJ := $(BUILD_DIR)/main.o
 APP     := $(BUILD_DIR)/muscat
 
-TEST_SRC := $(TEST_DIR)/test.c $(TEST_DIR)/queue_test.c
-TEST_OBJ := $(BUILD_DIR)/test.o $(BUILD_DIR)/queue_test.o
+TEST_SRC := $(TEST_DIR)/test.c $(TEST_DIR)/queue_test.c $(TEST_DIR)/http_test.c
+TEST_OBJ := $(BUILD_DIR)/test.o $(BUILD_DIR)/queue_test.o $(BUILD_DIR)/http_test.o
 TEST     := $(BUILD_DIR)/test
 
 APP_LIBS  := -lpthread
