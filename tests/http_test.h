@@ -8,4 +8,5 @@ void test_serialize_http_response_1(void);
 void test_serialize_http_response_2(void);
 void test_serialize_http_response_3(void);
 
-void test_deserialize_http_request(void);
+void test_deserialize_http_request_1(void);
+void test_deserialize_http_request_2(void);

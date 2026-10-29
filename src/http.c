@@ -13,6 +13,14 @@ int add_status_line_response(struct response* res, char* ver, int code, char* ph
     return 0;
 }
 
+int add_status_line_request(struct request* req, char* method, int path, char* ver) {
+    strncpy(req->method, method, MAX_VER_L);
+    strncpy(req->path, path, MAX_PATH_L);
+    strncpy(req->version, ver, MAX_VER_L);
+
+    return 0;
+}
+
 int add_header(struct content* c, char* name, char* value) {
     int i = c->headers_n;
     if (i >= MAX_HEADERS_N) 
@@ -57,9 +65,9 @@ int add_body(struct content* c, char* body) {
 int deserialize_header(struct content* c, char* h) {
     char* sep = strstr(h, ": ");
     if (sep == NULL) return -1;
-    sep = '\0';
+    *sep = '\0';
     char* name = h;
-    char* value = sep+1;
+    char* value = sep+2;
 
     return add_header(c, name, value);
 }
@@ -89,33 +97,56 @@ int deserialize_http_request(char* buf, size_t len, struct request* req) {
     str[len] = '\0';
     // End of head
     char* eoh = strstr(str, "\r\n\r\n");
-    if (eoh == NULL) return -1;
+    if (eoh == NULL) {
+        free(str);
+        return -1;
+    }
     // Method
     char* sep1 = strchr(str, ' ');
-    if (sep1 == NULL || sep1[1] == ' ') return -1;
-    sep1 = '\0';
+    if (sep1 == NULL || sep1[1] == ' ') {
+        free(str);
+        return -1;
+    }
+    *sep1 = '\0';
     char* method = str;
     // Path
     char* sep2 = strchr(sep1+1, ' ');
-    if (sep2 == NULL || sep2[1] == ' ') return -1;
-    sep2 = '\0';
+    if (sep2 == NULL || sep2[1] == ' ') {
+        free(str);
+        return -1;
+    }
+    *sep2 = '\0';
     char* path = sep1+1;
     // Version
     char* eol = strstr(sep2+1, "\r\n");
-    if (eol == NULL) return -1;
-    eol = '\0';
+    if (eol == NULL) {
+        free(str);
+        return -1;
+    }
+    *eol = '\0';
     char* version = sep2+1;
-
+    // Status line
+    if (add_status_line_request(req, method, path, version) < 0) {
+        free(str);
+        return -1;
+    }
+    // Headers
     char* ptr = eol+2;
     char* sep = NULL;
     while (ptr < eoh) {
         sep = strstr(ptr, "\r\n");
-        if (sep == NULL) return -1;
-        sep = '\0';
-        if (deserialize_header(&req->content, ptr) < 0)
+        if (sep == NULL) {
+            free(str);
             return -1;
-        ptr += 2;
+        }
+        *sep = '\0';
+        if (deserialize_header(&req->content, ptr) < 0) {
+            free(str);
+            return -1;
+        }
+        ptr = sep+2;
     }
+    free(str);
 
     return 0;
 }

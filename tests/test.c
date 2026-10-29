@@ -24,6 +24,8 @@ int main() {
     success = CU_add_test(http, "Serialize 1", test_serialize_http_response_1);
     success = CU_add_test(http, "Serialize 2", test_serialize_http_response_2);
     success = CU_add_test(http, "Serialize 3", test_serialize_http_response_3);
+    success = CU_add_test(http, "Deserialize 1", test_deserialize_http_request_1);
+    success = CU_add_test(http, "Deserialize 2", test_deserialize_http_request_2);
     if (success == NULL) {
         CU_cleanup_registry();
         return CU_get_error();
