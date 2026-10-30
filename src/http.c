@@ -13,7 +13,7 @@ int add_status_line_response(struct response* res, char* ver, int code, char* ph
     return 0;
 }
 
-int add_status_line_request(struct request* req, char* method, int path, char* ver) {
+int add_status_line_request(struct request* req, char* method, char* path, char* ver) {
     strncpy(req->method, method, MAX_VER_L);
     strncpy(req->path, path, MAX_PATH_L);
     strncpy(req->version, ver, MAX_VER_L);
@@ -39,27 +39,28 @@ int add_header(struct content* c, char* name, char* value) {
 int add_date(struct content* c) {
     time_t current;
     time(&current);
-    struct tm current_gm = {0};
-    gmtime_r(&current, &current_gm);
+    struct tm* current_gm = gmtime(&current);
 
     char time_str[MAX_VAL_L+1];
-    strftime(time_str, MAX_VAL_L, "%a, %d %b %Y %H:%M:%S GMT", &current_gm);
+    strftime(time_str, MAX_VAL_L, "%a, %d %b %Y %H:%M:%S GMT", current_gm);
 
     return add_header(c, "Date", time_str);
 }
 
 int add_length(struct content* c, size_t len) {
-    char value[MAX_VAL_L+2+1]; // \r\n + \0
-    int bytes = snprintf(value, MAX_VAL_L, "%d\r\n", len);
+    char value[MAX_VAL_L+1];
+    int bytes = snprintf(value, MAX_VAL_L, "%lu", len);
     if (bytes < 0 || bytes > MAX_VAL_L) return -1;
 
     c->body_len = len;
     
-    return add_header(c, "Content-Length: ", value);
+    return add_header(c, "Content-Length", value);
 }
 
 int add_body(struct content* c, char* body) {
     c->body = body;
+
+    return 0;
 }
 
 int deserialize_header(struct content* c, char* h) {
@@ -76,12 +77,12 @@ int serialize_http_response(struct response* res, char* buf, size_t len) {
     size_t total = 0;
     // Status line
     int bytes = snprintf(buf, len, "%s %d %s\r\n", res->version, res->code, res->phrase);
-    if (bytes < 0 || bytes > len) return -1;
+    if (bytes < 0 || (size_t)bytes > len) return -1;
     total += bytes;
     // Headers
     for (int i = 0; i < res->content.headers_n; i++) {
         bytes = snprintf(buf+total, len-total, "%s: %s\r\n", res->content.headers[i].name, res->content.headers[i].value);
-        if (bytes < 0 || bytes > len-total) return -1;
+        if (bytes < 0 || (size_t)bytes > len-total) return -1;
         total += bytes;
     }
     // \r\n

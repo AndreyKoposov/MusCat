@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <sys/time.h>
+#include <string.h>
 
 #include <pthread.h>
 #include <stdatomic.h>
@@ -15,6 +16,7 @@
 #include <arpa/inet.h>
 
 #include "queue.h"
+#include "http.h"
 
 #define BACKLOG 128
 #define IP_ADDR_S 32
@@ -52,7 +54,7 @@ void* work(void* args) {
     (void)args;
     int cs = -1;
     // Buffer init
-    char* buffer = malloc(BUF_SIZE);
+    char* buffer = malloc(BUF_SIZE+1);
     if (buffer == NULL) {
         perror("Memory allocation error");
         return NULL;
@@ -82,9 +84,20 @@ void* work(void* args) {
                 printf("Connection closed by client\n");
                 break;
             }
-            // Send all data
-            if (send_all(cs, buffer, bytes) < 0) {
-                perror("Send error");
+            buffer[BUF_SIZE] = '\0';
+            if (strstr(buffer, "\r\n\r\n")) {
+                struct request req = {0};
+                struct response res = {0};
+                add_status_line_response(&res, "HTTP/1.1", 200, "OK");
+                add_header(&res.content, "Connection", "close");
+                add_length(&res.content, 0);
+
+                deserialize_http_request(buffer, BUF_SIZE, &req);
+                int to_send = serialize_http_response(&res, buffer, BUF_SIZE);
+
+                // Send all data
+                if (send_all(cs, buffer, to_send) < 0)
+                    perror("Send error");
                 break;
             }
         }

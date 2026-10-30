@@ -7,13 +7,15 @@ void test_serialize_http_response_1(void) {
     // Arrange
     const char* expected = "HTTP/1.1 200 OK\r\n"
                            "Connection: close\r\n"
-                           "Content-Type: HTML\r\n\r\n";
+                           "Content-Type: HTML\r\n"
+                           "Content-Length: 0\r\n\r\n";
     int size = strlen(expected);
     char* buf = malloc(size);
     struct response res = {0};
     add_status_line_response(&res, "HTTP/1.1", 200, "OK");
     add_header(&res.content, "Connection", "close");
     add_header(&res.content, "Content-Type", "HTML");
+    add_length(&res.content, 0);
 
     // Act
     int status = serialize_http_response(&res, buf, size);
