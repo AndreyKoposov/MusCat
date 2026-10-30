@@ -9,8 +9,8 @@ SRC_DIR   := src
 TEST_DIR  := tests
 BUILD_DIR := build
 
-LIB_SRC := $(SRC_DIR)/server.c $(SRC_DIR)/queue.c $(SRC_DIR)/http.c
-LIB_OBJ := $(BUILD_DIR)/server.o $(BUILD_DIR)/queue.o $(BUILD_DIR)/http.o
+LIB_SRC := $(SRC_DIR)/server.c $(SRC_DIR)/queue.c $(SRC_DIR)/http.c $(SRC_DIR)/core.c
+LIB_OBJ := $(BUILD_DIR)/server.o $(BUILD_DIR)/queue.o $(BUILD_DIR)/http.o $(BUILD_DIR)/core.o
 LIB     := $(BUILD_DIR)/libserver.a
 
 APP_SRC := $(SRC_DIR)/main.c

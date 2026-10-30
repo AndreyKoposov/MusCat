@@ -16,7 +16,7 @@
 #include <arpa/inet.h>
 
 #include "queue.h"
-#include "http.h"
+#include "core.h"
 
 #define BACKLOG 128
 #define IP_ADDR_S 32
@@ -85,16 +85,16 @@ void* work(void* args) {
                 break;
             }
             buffer[BUF_SIZE] = '\0';
+            ssize_t to_send = 0;
             if (strstr(buffer, "\r\n\r\n")) {
-                struct request req = {0};
-                struct response res = {0};
-                add_status_line_response(&res, "HTTP/1.1", 200, "OK");
-                add_header(&res.content, "Connection", "close");
-                add_length(&res.content, 0);
-
-                deserialize_http_request(buffer, BUF_SIZE, &req);
-                int to_send = serialize_http_response(&res, buffer, BUF_SIZE);
-
+                // Request validation
+                if (validate_request(buffer, BUF_SIZE) < 0)
+                    to_send = (ssize_t)get_bad_request(buffer, BUF_SIZE);
+                else
+                    to_send = (ssize_t)get_ok(buffer, BUF_SIZE);
+                // Handle core error
+                if (to_send < 0)
+                    break;
                 // Send all data
                 if (send_all(cs, buffer, to_send) < 0)
                     perror("Send error");
